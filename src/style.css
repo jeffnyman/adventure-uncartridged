@@ -8,3 +8,37 @@
   margin: 0;
   padding: 0;
 }
+
+:root {
+  --sans: system-ui, "Segoe UI", roboto, sans-serif;
+  --heading: system-ui, "Segoe UI", roboto, sans-serif;
+  --game-bg: oklch(0% 0 0deg);
+  --game-text: oklch(40.38% 0.166 260.17deg);
+
+  background-color: var(--game-bg);
+  color: var(--game-primary);
+  font-family: var(--sans);
+  font-size: 1.125rem;
+  line-height: 1.45;
+  font-synthesis: none;
+  text-rendering: optimizelegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:where(html, body) {
+  overscroll-behavior-y: none;
+}
+
+body {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h1 {
+  font-family: var(--heading);
+  font-weight: 500;
+  font-size: 2.5em;
+}
