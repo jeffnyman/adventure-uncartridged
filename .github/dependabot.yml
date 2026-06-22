@@ -1,0 +1,44 @@
+version: 2
+
+updates:
+  # Keep GitHub Actions up to date.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "chore(ci)"
+
+  # Keep npm/pnpm dependencies up to date.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Group all Vite+ related updates into a single PR.
+      vite-plus:
+        patterns:
+          - "vite"
+          - "vite-plus"
+          - "voidzero-dev*"
+      # Group all TypeScript related updates into a single PR.
+      typescript:
+        patterns:
+          - "typescript"
+          - "@types/*"
+      # Group all commitlint related updates into a single PR.
+      commitlint:
+        patterns:
+          - "@commitlint/*"
+      # Group all release-it related updates into a single PR.
+      release-it:
+        patterns:
+          - "release-it"
+          - "@release-it/*"
+      # Group all stylelint related updates into a single PR.
+      stylelint:
+        patterns:
+          - "stylelint"
+          - "stylelint-*"

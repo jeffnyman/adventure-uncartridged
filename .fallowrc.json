@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": ["src/index.{ts,tsx,js,jsx}", "src/main.{ts,tsx,js,jsx}"],
+  "duplicates": {
+    "minOccurrences": 3,
+    "ignore": ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"]
+  },
+  "rules": {
+    "unused-catalog-entries": "off"
+  },
+  "overrides": [
+    {
+      "files": ["pnpm-workspace.yaml"],
+      "rules": {
+        "unused-dependency-overrides": "off"
+      }
+    }
+  ]
+}

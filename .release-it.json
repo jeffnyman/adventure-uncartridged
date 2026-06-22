@@ -1,0 +1,28 @@
+{
+  "$schema": "https://unpkg.com/release-it@20/schema/release-it.json",
+  "git": {
+    "requireBranch": "main",
+    "commitMessage": "chore: release v${version}",
+    "commit": true,
+    "tag": true,
+    "push": true
+  },
+  "github": {
+    "web": true,
+    "release": true,
+    "releaseName": "Release ${version}"
+  },
+  "hooks": {
+    "before:init": "vp check && vp test",
+    "after:bump": "vp build"
+  },
+  "npm": {
+    "publish": false
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": "conventionalcommits",
+      "infile": "CHANGELOG.md"
+    }
+  }
+}

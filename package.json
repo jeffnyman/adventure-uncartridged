@@ -1,0 +1,56 @@
+{
+  "name": "adventure-uncartridged",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A TypeScript port of the Atari 2600 'Adventure'.",
+  "keywords": [
+    "adventure",
+    "atari",
+    "game",
+    "typescript"
+  ],
+  "homepage": "https://jeffnyman.github.io/adventure-uncartridged/",
+  "bugs": {
+    "url": "https://github.com/jeffnyman/adventure-uncartridged/issues",
+    "email": "jeffnyman@gmail.com"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Jeff Nyman",
+    "email": "jeffnyman@gmail.com",
+    "url": "https://github.com/jeffnyman"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeffnyman/adventure-uncartridged.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev --host --open",
+    "build": "tsc && vp build",
+    "preview": "vp preview --host --open",
+    "release": "release-it",
+    "release:dry": "release-it --dry-run --changelog",
+    "prepare": "vp config"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "@release-it/conventional-changelog": "^11.0.1",
+    "fallow": "^2.101.0",
+    "release-it": "^20.2.0",
+    "stylelint": "^17.13.0",
+    "stylelint-config-standard": "^40.0.0",
+    "stylelint-use-nesting": "^6.0.2",
+    "typescript": "~6.0.2",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.8.0",
+      "onFail": "download"
+    }
+  }
+}

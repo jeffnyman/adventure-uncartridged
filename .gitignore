@@ -1,0 +1,54 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Generated project files
+node_modules
+out
+dist
+dist-ssr
+build
+coverage
+.nyc_output
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Tool caches
+.cache
+.turbo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Tool generated directories and files
+.fallow/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+.project
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# Operating system metadata
+**/.directory
+**/.DS_Store
+**/desktop.ini
+**/Thumbs.db
