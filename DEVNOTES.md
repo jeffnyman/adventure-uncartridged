@@ -91,6 +91,45 @@ lint: {
 
 This rule makes importing from `vite` or `vitest` directly a lint error. All imports must go through `vite-plus` and `vite-plus/test` respectively. This ensures the toolchain's version unification in `pnpm-workspace.yaml` cannot be accidentally bypassed by a direct import that resolves outside of Vite+'s managed dependency graph.
 
+## Windows: Smart App Control
+
+Windows 11 includes a feature called **Smart App Control** (SAC) that blocks native executables it can't verify through Microsoft's cloud reputation service. This is entirely separate from antivirus software like Norton or Windows Defender. SAC operates at the kernel level and intercepts `CreateProcess` calls before any scanner sees them.
+
+This matters here because Fallow ships a native Windows binary (`fallow.exe`) distributed as `@fallow-cli/win32-x64-msvc` via npm. It has no Microsoft reputation history, which makes it a SAC target.
+
+### Why It Can Silently Appear to Work at First
+
+SAC has three states: **Evaluation**, **On**, and **Off**. In Evaluation mode it monitors execution without blocking. Windows is gathering data to decide what kind of machine this is. During that window, `fallow` runs fine. At some point Windows makes its decision and transitions to **On**, at which point enforcement begins and previously-working binaries start getting blocked without warning.
+
+### Symptoms
+
+- `fallow` appears to run but produces no output.
+- No `.fallow/` cache directory is created.
+- Norton or Defender quarantine logs show nothing (SAC blocks before AV runs).
+- Adding a Norton exclusion has no effect; it's the wrong layer entirely.
+
+### Diagnosis
+
+Run `fallow.exe` directly via PowerShell:
+
+```powershell
+& 'F:\Projects\adventure-uncartridged\node_modules\.pnpm\@fallow-cli+win32-x64-msvc@2.101.0\node_modules\@fallow-cli\win32-x64-msvc\fallow.exe' --version
+```
+
+If SAC is the cause, the error is unambiguous:
+
+```
+An Application Control policy has blocked this file
+```
+
+### Fix
+
+**Windows Security → App & Browser Control → Smart App Control → Off.**
+
+One important caveat: SAC's state transitions are one-way. Once set to Off, Windows will not allow a return to Evaluation mode. Only a full OS reinstall resets it. You can toggle between On and Off, but Evaluation is gone permanently. Turning it Off does not reduce antivirus coverage; Norton and Defender real-time scanning remain fully active.
+
+For any development machine pulling native binaries through npm or pnpm, Off is the correct setting.
+
 ## Fallow Toolchain Suppressions
 
 I use **Fallow** for static dead-code and dependency analysis. There are specific root-level configurations in `.fallowrc.json` to handle the setup.
