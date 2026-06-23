@@ -1,29 +1,34 @@
 // Game logic.
 
 import { paintPixel, readResetSwitch, readSelectSwitch, roomColor } from "./hardware";
-import { GameState } from "./types";
-import { ROOMFLAG_MIRROR, ROOMFLAG_NONE, roomGfxNumberRoom } from "./data/rooms";
-import { COLOR_LTGRAY, COLOR_PURPLE, colorTable, type COLOR } from "./data/colors";
-import type { ROOM } from "./types";
-import { SCREEN_WIDTH, TOTAL_HEIGHT } from "./constants";
+import { GameState, ObjectId } from "./types";
+import {
+  roomDefs,
+  ROOMFLAG_LEFTTHINWALL,
+  ROOMFLAG_MIRROR,
+  ROOMFLAG_RIGHTTHINWALL,
+} from "./data/rooms";
+import { COLOR_BLACK, COLOR_FLASH, COLOR_LTGRAY, colorTable, type COLOR } from "./data/colors";
+import type { OBJECT, ROOM } from "./types";
+import {
+  CLOCKS_HSYNC,
+  CLOCKS_VSYNC,
+  MAX_DISPLAY_OBJECTS,
+  MAX_OBJECTS,
+  SCREEN_HEIGHT,
+  SCREEN_WIDTH,
+  TOTAL_HEIGHT,
+} from "./constants";
+import { objectDefs } from "./data/objects";
 
 let switchReset: boolean;
 let switchSelect: boolean;
 let gameState: GameState = GameState.GameSelect;
 let displayedRoomIndex: number = 0;
-
-// Indexed array of all rooms and their properties.
-let roomDefs: ROOM[] = [
-  {
-    graphicsData: roomGfxNumberRoom,
-    flags: ROOMFLAG_NONE,
-    color: COLOR_PURPLE,
-    roomUp: 0x00,
-    roomRight: 0x00,
-    roomDown: 0x00,
-    roomLeft: 0x00,
-  }, // 0 - Number Room
-];
+let displayedListIndex: number = 0;
+let showObjectFlicker: boolean = true;
+let flashColorHue: number = 0;
+let flashColorLum: number = 0;
 
 export function startGame(): void {
   const reset = readResetSwitch();
@@ -154,6 +159,156 @@ function printDisplay(): void {
       );
     }
   });
+
+  drawObjects(displayedRoom);
+}
+
+// This function holds the frame's actual render pass.
+function drawObjects(room: number): void {
+  const {
+    displayList,
+    numAdded,
+    colorFirst,
+    colorLast: colorLastInitial,
+  } = buildRoomDisplayList(room);
+
+  let colorLast = colorLastInitial;
+
+  resolveDisplayList(displayList, numAdded);
+
+  let numDisplayed = 0;
+  let i = displayedListIndex;
+
+  while (numDisplayed++ < numAdded && numDisplayed <= MAX_DISPLAY_OBJECTS) {
+    if (displayList[i] > ObjectId.None) {
+      if (showObjectFlicker) {
+        drawObject(objectDefs[displayList[i]]);
+      }
+
+      objectDefs[displayList[i]].displayed = true;
+      colorLast = objectDefs[displayList[i]].color;
+    }
+
+    // Wrap to the beginning of the list if the end is reached.
+    ++i;
+
+    if (i > MAX_OBJECTS) {
+      i = 0;
+    } else if (displayList[i] === ObjectId.None) {
+      i = 0;
+    }
+  }
+
+  if (!showObjectFlicker) {
+    for (let i = 0; objectDefs[i].graphicsData; i++) {
+      if (objectDefs[i].room === room) {
+        drawObject(objectDefs[i]);
+      }
+    }
+  }
+
+  drawThinWalls(room, colorFirst, colorLast);
+}
+
+function drawObject(object: OBJECT) {
+  let color: COLOR = object.color === COLOR_FLASH ? getFlashColor() : colorTable[object.color];
+  let cx = object.x * 2;
+  let cy = object.y * 2;
+  let size = object.size / 2 + 1;
+  let stateIndex = object.states[object.state];
+
+  const dataP = object.graphicsData!;
+  let i = 0;
+  let objHeight = dataP[i++];
+
+  for (let x = 0; x < stateIndex; x++) {
+    i += objHeight;
+    objHeight = dataP[i++];
+  }
+
+  cx -= CLOCKS_HSYNC;
+  cy -= CLOCKS_VSYNC;
+
+  for (let j = 0; j < objHeight; j++) {
+    for (let bit = 0; bit < 8; bit++) {
+      if (dataP[i] & (1 << (7 - bit))) {
+        let x = cx + bit * 2 * size;
+
+        if (x >= SCREEN_WIDTH) {
+          x -= SCREEN_WIDTH;
+        }
+
+        paintPixel(color.r, color.g, color.b, x, cy, 2 * size, 2);
+      }
+    }
+
+    i++;
+    cy -= 2;
+  }
+}
+
+function drawThinWalls(room: number, colorFirst: number, colorLast: number): void {
+  if (roomDefs[room].flags & ROOMFLAG_LEFTTHINWALL) {
+    const color: COLOR = colorTable[colorFirst > 0 ? colorFirst : COLOR_BLACK];
+
+    paintPixel(color.r, color.g, color.b, 0x0d * 2, 0x00, 4, SCREEN_HEIGHT);
+  }
+
+  if (roomDefs[room].flags & ROOMFLAG_RIGHTTHINWALL) {
+    const color: COLOR = colorTable[colorFirst > 0 ? colorLast : COLOR_BLACK];
+    paintPixel(color.r, color.g, color.b, 0x96 * 2, 0x00, 4, SCREEN_HEIGHT);
+  }
+}
+
+function resolveDisplayList(displayList: number[], numAdded: number): void {
+  if (numAdded <= MAX_DISPLAY_OBJECTS) {
+    displayedListIndex = 0;
+  } else {
+    if (displayedListIndex > numAdded) {
+      displayedListIndex = 0;
+    }
+
+    if (displayedListIndex > MAX_OBJECTS) {
+      displayedListIndex = 0;
+    }
+
+    if (displayList[displayedListIndex] === ObjectId.None) {
+      displayedListIndex = 0;
+    }
+  }
+}
+
+function buildRoomDisplayList(room: number): {
+  displayList: number[];
+  numAdded: number;
+  colorFirst: number;
+  colorLast: number;
+} {
+  const displayList: number[] = [];
+  let numAdded = 0;
+  let colorFirst = -1;
+  let colorLast = -1;
+
+  for (let i = 0; i < MAX_OBJECTS; i++) {
+    displayList.push(ObjectId.None);
+  }
+
+  for (let i = 0; objectDefs[i].graphicsData; i++) {
+    console.log(objectDefs[i]);
+    objectDefs[i].displayed = false;
+
+    if (objectDefs[i].room === room) {
+      displayList[numAdded++] = i;
+
+      if (colorFirst < 0) {
+        colorFirst = objectDefs[i].color;
+      }
+
+      colorLast = objectDefs[i].color;
+    }
+  }
+
+  return { displayList, numAdded, colorFirst, colorLast };
 }
 
 // Iterates over every set bit in the room's 20-column playfield,
@@ -191,4 +346,35 @@ function setPlayfieldBit(
       if (bit && callback(cx, ypos) === true) return;
     }
   }
+}
+
+function getFlashColor(): COLOR {
+  let r = 0,
+    g = 0,
+    b = 0;
+  let h = flashColorHue / (360.0 / 3);
+
+  if (h < 1) {
+    r = h * 255;
+    g = 0;
+    b = (1 - h) * 255;
+  } else if (h < 2) {
+    h -= 1;
+    r = (1 - h) * 255;
+    g = h * 255;
+    b = 0;
+  } else {
+    h -= 2;
+    r = 0;
+    g = (1 - h) * 255;
+    b = h * 255;
+  }
+
+  let color: COLOR = {
+    r: Math.max(flashColorLum, r),
+    g: Math.max(flashColorLum, g),
+    b: Math.max(flashColorLum, b),
+  };
+
+  return color;
 }

@@ -3,3 +3,7 @@ export const OVERSCAN = 16;
 export const SCREEN_WIDTH = 320;
 export const SCREEN_HEIGHT = 192;
 export const TOTAL_HEIGHT = SCREEN_HEIGHT + OVERSCAN + OVERSCAN;
+export const MAX_OBJECTS = 16;
+export const MAX_DISPLAY_OBJECTS = 2;
+export const CLOCKS_HSYNC = 2;
+export const CLOCKS_VSYNC = 4;

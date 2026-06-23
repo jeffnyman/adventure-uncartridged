@@ -6,6 +6,10 @@ export const GameState = {
   Win: 4,
 } as const;
 
+export const ObjectId = {
+  None: -1,
+} as const;
+
 export type GameState = (typeof GameState)[keyof typeof GameState];
 
 export interface ROOM {
@@ -16,4 +20,21 @@ export interface ROOM {
   roomRight: number;
   roomDown: number;
   roomLeft: number;
+}
+
+export interface OBJECT {
+  graphicsData: number[] | null;
+  states: number[];
+  state: number;
+  color: number;
+  room: number;
+  x: number;
+  y: number;
+  movementX: number;
+  movementY: number;
+  size: number;
+  linkedObject: number;
+  linkedObjectX: number;
+  linkedObjectY: number;
+  displayed: boolean;
 }

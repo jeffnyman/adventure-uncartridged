@@ -1,5 +1,8 @@
+export const COLOR_BLACK = 0;
 export const COLOR_LTGRAY = 1;
 export const COLOR_PURPLE = 6;
+export const COLOR_LIMEGREEN = 11;
+export const COLOR_FLASH = 14;
 
 export interface COLOR {
   r: number;
