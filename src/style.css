@@ -16,7 +16,7 @@
   --game-text: oklch(40.38% 0.166 260.17deg);
 
   background-color: var(--game-bg);
-  color: var(--game-primary);
+  color: var(--game-text);
   font-family: var(--sans);
   font-size: 1.125rem;
   line-height: 1.45;

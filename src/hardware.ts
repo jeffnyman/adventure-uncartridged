@@ -1,6 +1,7 @@
 // Hardware abstraction layer.
 
-import { FPS } from "./constants";
+import { FPS, OVERSCAN } from "./constants";
+import type { COLOR } from "./data/colors";
 
 let canvas: HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D;
@@ -8,7 +9,12 @@ let ctx: CanvasRenderingContext2D;
 let keyReset: boolean = false;
 let keySelect: boolean = false;
 
-export function run(tick: () => void): void {
+let lastColor: COLOR = { r: 0, g: 0, b: 0 };
+let colorChangeCallback: (color: COLOR) => void;
+
+export function run(tick: () => void, onColorChange: (color: COLOR) => void): void {
+  colorChangeCallback = onColorChange;
+
   // SETUP: GAME SURFACE
 
   canvas = document.getElementById("canvas") as HTMLCanvasElement;
@@ -43,6 +49,28 @@ export function run(tick: () => void): void {
   }
 
   requestAnimationFrame(gameLoop);
+}
+
+export function paintPixel(
+  r: number,
+  g: number,
+  b: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): void {
+  width = width || 1;
+  height = height || 1;
+  ctx.fillStyle = `rgba(${r},${g},${b},1)`;
+  ctx.fillRect(x, y - OVERSCAN, width, height);
+}
+
+export function roomColor(color: COLOR): void {
+  if (color.r !== lastColor.r || color.g !== lastColor.g || color.b !== lastColor.b) {
+    lastColor = color;
+    colorChangeCallback(color);
+  }
 }
 
 export function readResetSwitch(): boolean {

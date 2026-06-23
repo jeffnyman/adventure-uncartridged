@@ -7,3 +7,13 @@ export const GameState = {
 } as const;
 
 export type GameState = (typeof GameState)[keyof typeof GameState];
+
+export interface ROOM {
+  graphicsData: number[];
+  flags: number;
+  color: number;
+  roomUp: number;
+  roomRight: number;
+  roomDown: number;
+  roomLeft: number;
+}
