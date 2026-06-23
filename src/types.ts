@@ -8,6 +8,7 @@ export const GameState = {
 
 export const ObjectId = {
   None: -1,
+  Number: 0,
 } as const;
 
 export type GameState = (typeof GameState)[keyof typeof GameState];

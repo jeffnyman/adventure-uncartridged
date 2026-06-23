@@ -29,6 +29,7 @@ let displayedListIndex: number = 0;
 let showObjectFlicker: boolean = true;
 let flashColorHue: number = 0;
 let flashColorLum: number = 0;
+let gameLevel: number = 0;
 
 export function startGame(): void {
   const reset = readResetSwitch();
@@ -75,8 +76,14 @@ function tickResetState(): void {
 }
 
 function tickSelectState(select: boolean): void {
+  objectDefs[ObjectId.Number].state = gameLevel;
+
   if (switchSelect && !select) {
-    // handle level selection
+    ++gameLevel;
+
+    if (gameLevel > 2) {
+      gameLevel = 0;
+    }
   }
 
   displayedRoomIndex = 0;
@@ -294,7 +301,6 @@ function buildRoomDisplayList(room: number): {
   }
 
   for (let i = 0; objectDefs[i].graphicsData; i++) {
-    console.log(objectDefs[i]);
     objectDefs[i].displayed = false;
 
     if (objectDefs[i].room === room) {
