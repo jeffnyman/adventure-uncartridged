@@ -44,6 +44,7 @@ h1 {
 }
 
 .canvas {
-  width: 640px;
-  height: 384px;
+  width: min(80vw, 80vh);
+  height: auto;
+  aspect-ratio: 320 / 192;
 }
