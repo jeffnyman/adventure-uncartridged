@@ -19,7 +19,7 @@ import {
   SCREEN_WIDTH,
   TOTAL_HEIGHT,
 } from "./constants";
-import { objectDefs } from "./data/objects";
+import { objectBall, objectDefs } from "./data/objects";
 
 let switchReset: boolean;
 let switchSelect: boolean;
@@ -66,6 +66,15 @@ function tickActiveGameState(select: boolean): void {
 }
 
 function tickResetState(): void {
+  objectBall.room = 0x11;
+  objectBall.x = 0x50 * 2;
+  objectBall.y = 0x20 * 2;
+  objectBall.previousX = objectBall.x;
+  objectBall.previousY = objectBall.y;
+  objectBall.linkedObject = ObjectId.None;
+
+  displayedRoomIndex = objectBall.room;
+
   if (gameState === GameState.GameSelect) {
     // Re-initialize level. Full game reset.
   } else {

@@ -1,4 +1,4 @@
-import type { OBJECT } from "../types";
+import { ObjectId, type BALL, type OBJECT } from "../types";
 import { COLOR_LIMEGREEN } from "./colors";
 
 // ============================================================
@@ -76,3 +76,17 @@ export const objectDefs: OBJECT[] = [
     displayed: false,
   }, // # 12 Null
 ];
+
+export const objectBall: BALL = {
+  room: 0,
+  x: 0,
+  y: 0,
+  previousX: 0,
+  previousY: 0,
+  linkedObject: ObjectId.None,
+  linkedObjectX: 0,
+  linkedObjectY: 0,
+  hitX: false,
+  hitY: false,
+  hitObject: ObjectId.None,
+};

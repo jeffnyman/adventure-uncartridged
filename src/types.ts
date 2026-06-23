@@ -39,3 +39,17 @@ export interface OBJECT {
   linkedObjectY: number;
   displayed: boolean;
 }
+
+export interface BALL {
+  room: number;
+  x: number;
+  y: number;
+  previousX: number;
+  previousY: number;
+  linkedObject: number;
+  linkedObjectX: number;
+  linkedObjectY: number;
+  hitX: boolean;
+  hitY: boolean;
+  hitObject: number;
+}
