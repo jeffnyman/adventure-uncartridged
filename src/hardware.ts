@@ -5,7 +5,12 @@ import { FPS } from "./constants";
 let canvas: HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D;
 
+let keyReset: boolean = false;
+let keySelect: boolean = false;
+
 export function run(tick: () => void): void {
+  // SETUP: GAME SURFACE
+
   canvas = document.getElementById("canvas") as HTMLCanvasElement;
   ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
   ctx.imageSmoothingEnabled = false;
@@ -20,6 +25,11 @@ export function run(tick: () => void): void {
   // a per-call adjustment.
   ctx.transform(1, 0, 0, -1, 0, canvas.height);
 
+  // SETUP: GAME ACTIONS
+  setupKeyHandlers();
+
+  // SETUP: GAME INTERFACE
+
   const frameInterval = 1000 / FPS;
   let lastTimestamp = 0;
 
@@ -33,4 +43,43 @@ export function run(tick: () => void): void {
   }
 
   requestAnimationFrame(gameLoop);
+}
+
+export function readResetSwitch(): boolean {
+  return keyReset;
+}
+
+export function readSelectSwitch(): boolean {
+  return keySelect;
+}
+
+function applyKeyState(key: string, pressed: boolean): void {
+  switch (key) {
+    case "1":
+      keyReset = pressed;
+      break;
+    case "2":
+      keySelect = pressed;
+      break;
+    case "ArrowUp":
+      // handle up movement
+      break;
+    case "ArrowDown":
+      // handle down movement
+      break;
+    case "ArrowLeft":
+      // handle left movement
+      break;
+    case "ArrowRight":
+      // handle right movement
+      break;
+    case " ":
+      // handle drop action
+      break;
+  }
+}
+
+function setupKeyHandlers(): void {
+  window.onkeydown = (e) => applyKeyState(e.key, true);
+  window.onkeyup = (e) => applyKeyState(e.key, false);
 }
