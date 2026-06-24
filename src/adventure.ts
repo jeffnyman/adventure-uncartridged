@@ -31,6 +31,7 @@ let showObjectFlicker: boolean = true;
 let flashColorHue: number = 0;
 let flashColorLum: number = 0;
 let gameLevel: number = 0;
+let winFlashTimer: number = 0;
 
 export function startGame(): void {
   const reset = readResetSwitch();
@@ -119,6 +120,12 @@ function tickSelectState(select: boolean): void {
 }
 
 function tickWinState(reset: boolean, select: boolean): void {
+  if (winFlashTimer > 0) {
+    --winFlashTimer;
+  }
+
+  printDisplay();
+
   // Either switch released exits the win state and goes back to
   // the level selection.
   if ((switchReset && !reset) || (switchSelect && !select)) {
@@ -192,8 +199,11 @@ function printDisplay(): void {
   let displayedRoom = displayedRoomIndex;
   const currentRoom: ROOM = roomDefs[displayedRoom];
   const roomData = currentRoom.graphicsData;
-  let color: COLOR = colorTable[currentRoom.color];
   let colorBackground: COLOR = colorTable[COLOR_LTGRAY];
+  let color: COLOR =
+    gameState === GameState.Win && winFlashTimer > 0
+      ? getFlashColor()
+      : colorTable[currentRoom.color];
 
   // Tell the hardware what the current room color is.
   roomColor(color);
