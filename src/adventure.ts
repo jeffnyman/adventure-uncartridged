@@ -20,7 +20,7 @@ import {
   SCREEN_WIDTH,
   TOTAL_HEIGHT,
 } from "./constants";
-import { game1Objects, game2Objects, objectBall, objectDefs } from "./data/objects";
+import { game1Objects, game2Objects, objectBall, objectDefs, objectSurround } from "./data/objects";
 
 let switchReset: boolean;
 let switchSelect: boolean;
@@ -210,6 +210,11 @@ function printDisplay(): void {
     TOTAL_HEIGHT,
   );
 
+  // Paint the surround under the playfield layer.
+  if (objectSurround.room === objectBall.room && objectSurround.state === 0) {
+    drawObject(objectSurround);
+  }
+
   let mirror = currentRoom.flags & ROOMFLAG_MIRROR;
 
   const cell_width = 8;
@@ -271,6 +276,8 @@ function drawObjects(room: number): void {
 
   resolveDisplayList(displayList, numAdded);
 
+  objectSurround.displayed = false;
+
   let numDisplayed = 0;
   let i = displayedListIndex;
 
@@ -282,6 +289,8 @@ function drawObjects(room: number): void {
 
       objectDefs[displayList[i]].displayed = true;
       colorLast = objectDefs[displayList[i]].color;
+    } else if (displayList[i] === ObjectId.Surround) {
+      objectSurround.displayed = true;
     }
 
     // Wrap to the beginning of the list if the end is reached.
@@ -383,6 +392,10 @@ function buildRoomDisplayList(room: number): {
   let numAdded = 0;
   let colorFirst = -1;
   let colorLast = -1;
+
+  if (objectSurround.room === room) {
+    displayList[numAdded++] = ObjectId.Surround;
+  }
 
   for (let i = 0; i < MAX_OBJECTS; i++) {
     displayList.push(ObjectId.None);

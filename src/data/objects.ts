@@ -4,6 +4,7 @@ import {
   COLOR_FLASH,
   COLOR_LIMEGREEN,
   COLOR_LTGRAY,
+  COLOR_ORANGE,
   COLOR_PURPLE,
   COLOR_RED,
   COLOR_WHITE,
@@ -620,3 +621,22 @@ export const game2Objects = [
   ObjectId.Magnet,       0x0E, 0x80, 0x20, 0x00, 0x00, 0x00,   // Magnet
   0xff, 0, 0, 0, 0, 0, 0
 ]
+
+// Special Object : Surround
+
+export const objectSurround: OBJECT = {
+  graphicsData: objectGfxSurround,
+  states: [0],
+  state: 0,
+  color: COLOR_ORANGE,
+  room: -1,
+  x: 0,
+  y: 0,
+  movementX: 0,
+  movementY: 0,
+  size: 0x07,
+  linkedObject: ObjectId.None,
+  linkedObjectX: 0,
+  linkedObjectY: 0,
+  displayed: true,
+};
