@@ -579,3 +579,20 @@ export const roomBoundsData = [
   ObjectId.Magnet,       0x01, 0x1D,
   ObjectId.None,         0,    0
 ]
+
+// Room differences for different levels (level 1,2,3)
+// prettier-ignore
+export const roomLevelDiffs = [
+  0x10,0x0f,0x0f, // down from room 01
+  0x05,0x11,0x11, // down from room 02
+  0x1d,0x0a,0x0a, // down from room 03
+  0x1c,0x16,0x16, // u/l/r/d from room 1b (black castle room)
+  0x1b,0x0c,0x0c, // down from room 1c
+  0x03,0x0c,0x0c // up from room 1d (top entry room)
+];
+
+// Castle Rooms (Yellow, White, Black)
+export const castleRoomOffsets = [0x11, 0x0f, 0x10];
+
+// Castle Entry Rooms (Yellow, White, Black)
+export const entryRoomOffsets = [0x12, 0x1a, 0x1b];

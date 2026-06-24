@@ -10,11 +10,14 @@ import {
 } from "./hardware";
 import { GameState, ObjectId } from "./types";
 import {
+  castleRoomOffsets,
+  entryRoomOffsets,
   roomBoundsData,
   roomDefs,
   ROOMFLAG_LEFTTHINWALL,
   ROOMFLAG_MIRROR,
   ROOMFLAG_RIGHTTHINWALL,
+  roomLevelDiffs,
 } from "./data/rooms";
 import { COLOR_BLACK, COLOR_FLASH, COLOR_LTGRAY, colorTable, type COLOR } from "./data/colors";
 import type { OBJECT, ROOM } from "./types";
@@ -23,6 +26,7 @@ import {
   CLOCKS_VSYNC,
   MAX_DISPLAY_OBJECTS,
   MAX_OBJECTS,
+  OVERSCAN,
   SCREEN_HEIGHT,
   SCREEN_WIDTH,
   TOTAL_HEIGHT,
@@ -152,7 +156,28 @@ function tickWinState(reset: boolean, select: boolean): void {
   }
 }
 
+function crossingBridge(room: number, x: number, y: number): boolean {
+  const bridge: OBJECT = objectDefs[ObjectId.Bridge];
+
+  if (bridge.room == room && objectBall.linkedObject != ObjectId.Bridge) {
+    let xDiff = x / 2 - bridge.x;
+
+    if (xDiff >= 0x0a && xDiff <= 0x17) {
+      let yDiff = bridge.y - y / 2;
+
+      if (yDiff >= -5 && yDiff <= 0x15) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 function ballMovement() {
+  const tempX = objectBall.x;
+  const tempY = objectBall.y;
+
   // NOTE: This will need to be programmatic.
   const eaten: boolean = false;
 
@@ -164,7 +189,8 @@ function ballMovement() {
   if (joystick.down) objectBall.y -= 6;
 
   if (!eaten) {
-    // handle collisions
+    ballHandleYRoomWrap(tempX);
+    ballCheckYCollision(tempX);
   } else {
     objectBall.hitY = true;
   }
@@ -175,10 +201,238 @@ function ballMovement() {
   if (joystick.left) objectBall.x -= 6;
 
   if (!eaten) {
-    // handle collisions
+    ballHandleXRoomWrap();
+    ballCheckXCollision(tempY);
   } else {
     objectBall.hitX = true;
   }
+}
+
+function ballEnterCastle(portId: number): void {
+  objectBall.x = 0xa0;
+  objectBall.y = 0x2c * 2;
+  objectBall.previousX = objectBall.x;
+  objectBall.previousY = objectBall.y;
+  objectBall.room = adjustRoomLevel(castleRoomOffsets[portId]);
+}
+
+function ballHandleXRoomWrap() {
+  if (objectBall.x >= SCREEN_WIDTH - 4) {
+    objectBall.x = 5;
+    objectBall.room = objectBall.room == 0x3 ? 0x1e : roomDefs[objectBall.room].roomRight;
+    objectBall.room = adjustRoomLevel(objectBall.room);
+  } else if (objectBall.x < 4) {
+    objectBall.x = SCREEN_WIDTH - 5;
+    objectBall.room = adjustRoomLevel(roomDefs[objectBall.room].roomLeft);
+  }
+}
+
+function ballHandleYRoomWrap(tempX: number): void {
+  if (objectBall.y > OVERSCAN + SCREEN_HEIGHT + 6) {
+    objectBall.y = OVERSCAN + OVERSCAN - 2;
+    objectBall.previousY = objectBall.y;
+    objectBall.room = adjustRoomLevel(roomDefs[objectBall.room].roomUp);
+  } else if (objectBall.y < 0x0d * 2) {
+    if (objectBall.room == entryRoomOffsets[ObjectId.Port1]) {
+      ballEnterCastle(ObjectId.Port1);
+    } else if (objectBall.room == entryRoomOffsets[ObjectId.Port2]) {
+      ballEnterCastle(ObjectId.Port2);
+    } else if (objectBall.room == entryRoomOffsets[ObjectId.Port3]) {
+      ballEnterCastle(ObjectId.Port3);
+    } else {
+      const newY = SCREEN_HEIGHT + OVERSCAN;
+      const roomDown = adjustRoomLevel(roomDefs[objectBall.room].roomDown);
+
+      if (collisionCheckBallWithWalls(roomDown, tempX, newY)) {
+        objectBall.hitY = true;
+        displayedRoomIndex = roomDown;
+      } else {
+        objectBall.y = newY;
+        objectBall.room = roomDown;
+      }
+    }
+  }
+}
+
+function ballCheckXCollision(tempY: number): void {
+  const hitObject = collisionCheckBallWithObjects(0);
+  const hitWall = collisionCheckBallWithWalls(objectBall.room, objectBall.x, tempY);
+
+  if (hitWall || hitObject > ObjectId.None) {
+    objectBall.hitX = true;
+    objectBall.hitObject = hitObject;
+  }
+}
+
+function ballCheckYCollision(tempX: number): void {
+  const hitObject = collisionCheckBallWithObjects(0);
+  const onBridge = crossingBridge(objectBall.room, tempX, objectBall.y);
+  const hitWall = onBridge
+    ? false
+    : collisionCheckBallWithWalls(objectBall.room, tempX, objectBall.y);
+
+  if (hitWall || hitObject > ObjectId.None) {
+    objectBall.hitY = true;
+    objectBall.hitObject = hitObject;
+  }
+}
+
+export function collisionCheckObject(
+  object: OBJECT,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): boolean {
+  let objectX = object.x * 2;
+  let objectY = object.y * 2;
+  let objectSize = object.size / 2 + 1;
+  let stateIndex = object.states[object.state];
+
+  const dataP = object.graphicsData!;
+
+  let i = 0;
+  let objHeight = dataP[i++];
+
+  for (let j = 0; j < stateIndex; j++) {
+    i += objHeight;
+    objHeight = dataP[i++];
+  }
+
+  objectX -= CLOCKS_HSYNC;
+
+  for (let j = 0; j < objHeight; j++) {
+    const rowByte = dataP[i];
+
+    for (let bit = 0; bit < 8; bit++) {
+      if (rowByte & (1 << (7 - bit))) {
+        let wrappedX = objectX + bit * 2 * objectSize;
+
+        if (wrappedX >= SCREEN_WIDTH) {
+          wrappedX -= SCREEN_WIDTH;
+        }
+
+        if (hitTestRects(x, y, width, height, wrappedX, objectY, 2 * objectSize, 2)) {
+          return true;
+        }
+      }
+    }
+
+    ++i;
+    objectY -= 2;
+  }
+
+  return false;
+}
+
+function collisionCheckBallWithObjects(startIndex: number): number {
+  for (let i = startIndex; objectDefs[i].graphicsData; i++) {
+    const object: OBJECT = objectDefs[i];
+
+    if (object.displayed && objectBall.room == object.room) {
+      if (collisionCheckObject(object, objectBall.x - 4, objectBall.y - 1, 8, 8)) {
+        return i;
+      }
+    }
+  }
+
+  return ObjectId.None;
+}
+
+function collisionCheckBallWithWalls(room: number, x: number, y: number): boolean {
+  let hitWall = false;
+
+  y -= 30;
+
+  const currentRoom: ROOM = roomDefs[room];
+  const roomData = currentRoom.graphicsData;
+  const mirror = currentRoom.flags & ROOMFLAG_MIRROR;
+  const cell_width = 8;
+  const cell_height = 32;
+
+  if (currentRoom.flags & ROOMFLAG_LEFTTHINWALL && x - (4 + 4) < 0x0d * 2) {
+    hitWall = true;
+  }
+
+  if (currentRoom.flags & ROOMFLAG_RIGHTTHINWALL && x + 4 > 0x96 * 2) {
+    if (objectDefs[ObjectId.Dot].room != room) {
+      return hitWall;
+    }
+  }
+
+  setPlayfieldBit(roomData, (cx, ypos) => {
+    if (
+      hitTestRects(x - 4, y - 4, 8, 8, cx * cell_width, ypos * cell_height, cell_width, cell_height)
+    ) {
+      hitWall = true;
+      return true;
+    }
+
+    if (mirror) {
+      if (
+        hitTestRects(
+          x - 4,
+          y - 4,
+          8,
+          8,
+          (cx + 20) * cell_width,
+          ypos * cell_height,
+          cell_width,
+          cell_height,
+        )
+      ) {
+        hitWall = true;
+        return true;
+      }
+    } else {
+      if (
+        hitTestRects(
+          x - 4,
+          y - 4,
+          8,
+          8,
+          (40 - (cx + 1)) * cell_width,
+          ypos * cell_height,
+          cell_width,
+          cell_height,
+        )
+      ) {
+        hitWall = true;
+        return true;
+      }
+    }
+  });
+
+  return hitWall;
+}
+
+function adjustRoomLevel(room: number): number {
+  if (room & 0x80) {
+    let newRoomIndex = (room & ~0x80) + gameLevel;
+
+    room = roomLevelDiffs[newRoomIndex];
+  }
+
+  return room;
+}
+
+function hitTestRects(
+  ax: number,
+  ay: number,
+  awidth: number,
+  aheight: number,
+  bx: number,
+  by: number,
+  bwidth: number,
+  bheight: number,
+): boolean {
+  let intersects = true;
+
+  if (ay - aheight >= by || ay <= by - bheight || ax + awidth <= bx || ax >= bx + bwidth) {
+    intersects = false;
+  }
+
+  return intersects;
 }
 
 function setupRoomObjects() {
