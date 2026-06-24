@@ -81,6 +81,10 @@ export function readSelectSwitch(): boolean {
   return keySelect;
 }
 
+export function random(): number {
+  return Math.random();
+}
+
 function applyKeyState(key: string, pressed: boolean): void {
   switch (key) {
     case "1":

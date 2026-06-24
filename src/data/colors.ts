@@ -1,7 +1,17 @@
 export const COLOR_BLACK = 0;
 export const COLOR_LTGRAY = 1;
+export const COLOR_WHITE = 2;
+export const COLOR_YELLOW = 3;
+export const COLOR_ORANGE = 4;
+export const COLOR_RED = 5;
 export const COLOR_PURPLE = 6;
+export const COLOR_BLUE = 7;
+export const COLOR_LTCYAN = 8;
+export const COLOR_CYAN = 9;
+export const COLOR_DKGREEN = 10;
 export const COLOR_LIMEGREEN = 11;
+export const COLOR_OLIVEGREEN = 12;
+export const COLOR_TAN = 13;
 export const COLOR_FLASH = 14;
 
 export interface COLOR {

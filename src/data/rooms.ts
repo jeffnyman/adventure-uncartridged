@@ -1,4 +1,4 @@
-import type { ROOM } from "../types";
+import { ObjectId, type ROOM } from "../types";
 import { COLOR_PURPLE } from "./colors";
 
 export const ROOMFLAG_NONE = 0x00;
@@ -34,3 +34,22 @@ export const roomDefs: ROOM[] = [
     roomLeft: 0x00,
   }, // 0 - Number Room
 ];
+
+// Room placement bounds for game 3 random object placement
+// Format per entry: objectId, lowerRoomBound, upperRoomBound
+// Terminated by ObjectId.None sentinel
+// prettier-ignore
+export const roomBoundsData = [
+  ObjectId.Chalice,      0x13, 0x1A,
+  ObjectId.RedDragon,    0x01, 0x1D,
+  ObjectId.YellowDragon, 0x01, 0x1D,
+  ObjectId.GreenDragon,  0x01, 0x1D,
+  ObjectId.Sword,        0x01, 0x1D,
+  ObjectId.Bridge,       0x01, 0x1D,
+  ObjectId.YellowKey,    0x01, 0x1D,
+  ObjectId.WhiteKey,     0x01, 0x16,
+  ObjectId.BlackKey,     0x01, 0x12,
+  ObjectId.Bat,          0x01, 0x1D,
+  ObjectId.Magnet,       0x01, 0x1D,
+  ObjectId.None,         0,    0
+]

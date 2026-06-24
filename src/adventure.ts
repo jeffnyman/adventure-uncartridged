@@ -1,8 +1,9 @@
 // Game logic.
 
-import { paintPixel, readResetSwitch, readSelectSwitch, roomColor } from "./hardware";
+import { paintPixel, random, readResetSwitch, readSelectSwitch, roomColor } from "./hardware";
 import { GameState, ObjectId } from "./types";
 import {
+  roomBoundsData,
   roomDefs,
   ROOMFLAG_LEFTTHINWALL,
   ROOMFLAG_MIRROR,
@@ -19,7 +20,7 @@ import {
   SCREEN_WIDTH,
   TOTAL_HEIGHT,
 } from "./constants";
-import { objectBall, objectDefs } from "./data/objects";
+import { game1Objects, game2Objects, objectBall, objectDefs } from "./data/objects";
 
 let switchReset: boolean;
 let switchSelect: boolean;
@@ -77,8 +78,18 @@ function tickResetState(): void {
 
   if (gameState === GameState.GameSelect) {
     // Re-initialize level. Full game reset.
+    setupRoomObjects();
   } else {
-    // Mid-game reset.
+    // Mid-game reset. The only thing that happens here are the
+    // dragons are reset, without doing a re-initializing of the
+    // entire level.
+    objectDefs[ObjectId.YellowDragon].state = 0x0;
+    objectDefs[ObjectId.GreenDragon].state = 0x0;
+    objectDefs[ObjectId.RedDragon].state = 0x0;
+
+    objectDefs[ObjectId.YellowDragon].linkedObject = ObjectId.None;
+    objectDefs[ObjectId.GreenDragon].linkedObject = ObjectId.None;
+    objectDefs[ObjectId.RedDragon].linkedObject = ObjectId.None;
   }
 
   gameState = GameState.Active1;
@@ -96,6 +107,11 @@ function tickSelectState(select: boolean): void {
   }
 
   displayedRoomIndex = 0;
+
+  objectBall.room = 0;
+  objectBall.x = 0;
+  objectBall.y = 0;
+
   printDisplay();
 }
 
@@ -104,6 +120,60 @@ function tickWinState(reset: boolean, select: boolean): void {
   // the level selection.
   if ((switchReset && !reset) || (switchSelect && !select)) {
     gameState = GameState.GameSelect;
+  }
+}
+
+function setupRoomObjects() {
+  for (let i = 0; objectDefs[i].graphicsData; i++) {
+    let object: OBJECT = objectDefs[i];
+
+    object.movementX = 0;
+    object.movementY = 0;
+    object.linkedObject = ObjectId.None;
+  }
+
+  const p: number[] = gameLevel === 0 ? game1Objects : game2Objects;
+  let i = 0;
+
+  while (p[i] !== 0xff) {
+    let object = p[i++];
+    let room = p[i++];
+    let xpos = p[i++];
+    let ypos = p[i++];
+    let state = p[i++];
+    let movementX = p[i++];
+    let movementY = p[i++];
+
+    objectDefs[object].room = room;
+    objectDefs[object].x = xpos;
+    objectDefs[object].y = ypos;
+    objectDefs[object].state = state;
+    objectDefs[object].movementX = movementX;
+    objectDefs[object].movementY = movementY;
+  }
+
+  if (gameLevel === 2) {
+    const boundsData: number[] = roomBoundsData;
+
+    let i = 0;
+    let object = boundsData[i++];
+    let lower = boundsData[i++];
+    let upper = boundsData[i++];
+
+    do {
+      while (true) {
+        let room = random() * 0x1f;
+
+        if (room >= lower && room <= upper) {
+          objectDefs[object].room = room;
+          break;
+        }
+      }
+
+      object = boundsData[i++];
+      lower = boundsData[i++];
+      upper = boundsData[i++];
+    } while (object > ObjectId.None);
   }
 }
 
