@@ -249,6 +249,12 @@ function printDisplay(): void {
     }
   });
 
+  let x = (objectBall.x - 4) & ~0x00000001;
+  let y = (objectBall.y - 10) & ~0x00000001;
+
+  color = colorTable[roomDefs[displayedRoomIndex].color];
+  paintPixel(color.r, color.g, color.b, x, y, 8, 8);
+
   drawObjects(displayedRoom);
 }
 
