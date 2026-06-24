@@ -84,6 +84,8 @@ function tickActiveGameState(select: boolean): void {
       printDisplay();
       ++gameState;
     } else if (gameState === GameState.Active2) {
+      resolveCollisions();
+      ++displayedListIndex;
       printDisplay();
       ++gameState;
     } else if (gameState === GameState.Active3) {
@@ -404,6 +406,42 @@ function collisionCheckBallWithWalls(room: number, x: number, y: number): boolea
   });
 
   return hitWall;
+}
+
+function resolveCollisions(): void {
+  if (!objectBall.hitX && !objectBall.hitY) {
+    let hitObject = collisionCheckBallWithObjects(0);
+
+    if (hitObject > ObjectId.None && hitObject == objectBall.linkedObject) {
+      let diffX = objectBall.x - objectBall.previousX;
+
+      objectBall.linkedObjectX += diffX / 2;
+
+      let diffY = objectBall.y - objectBall.previousY;
+
+      objectBall.linkedObjectY += diffY / 2;
+    }
+  }
+
+  if (objectBall.hitX) {
+    if (objectBall.hitObject > ObjectId.None && objectBall.hitObject == objectBall.linkedObject) {
+      let diffX = objectBall.x - objectBall.previousX;
+      objectBall.linkedObjectX += diffX / 2;
+    }
+
+    objectBall.x = objectBall.previousX;
+    objectBall.hitX = false;
+  }
+
+  if (objectBall.hitY) {
+    if (objectBall.hitObject > ObjectId.None && objectBall.hitObject == objectBall.linkedObject) {
+      let diffY = objectBall.y - objectBall.previousY;
+      objectBall.linkedObjectY += diffY / 2;
+    }
+
+    objectBall.y = objectBall.previousY;
+    objectBall.hitY = false;
+  }
 }
 
 function adjustRoomLevel(room: number): number {
