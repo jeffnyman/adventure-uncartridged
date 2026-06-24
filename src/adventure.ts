@@ -1,6 +1,13 @@
 // Game logic.
 
-import { paintPixel, random, readResetSwitch, readSelectSwitch, roomColor } from "./hardware";
+import {
+  paintPixel,
+  random,
+  readJoystick,
+  readResetSwitch,
+  readSelectSwitch,
+  roomColor,
+} from "./hardware";
 import { GameState, ObjectId } from "./types";
 import {
   roomBoundsData,
@@ -21,6 +28,7 @@ import {
   TOTAL_HEIGHT,
 } from "./constants";
 import { game1Objects, game2Objects, objectBall, objectDefs, objectSurround } from "./data/objects";
+import { joystick } from "./data/action";
 
 let switchReset: boolean;
 let switchSelect: boolean;
@@ -55,9 +63,20 @@ function tickActiveGameState(select: boolean): void {
   if (switchSelect && !select) {
     // Select was released mid-game.
     gameState = GameState.GameSelect;
+
+    objectBall.room = 0;
+    objectBall.x = 0;
+    objectBall.y = 0;
+    objectBall.previousX = objectBall.x;
+    objectBall.previousY = objectBall.y;
+    displayedRoomIndex = objectBall.room;
+
+    printDisplay();
   } else {
+    readJoystick(joystick);
     // Core level logic.
     if (gameState === GameState.Active1) {
+      ballMovement();
       printDisplay();
       ++gameState;
     } else if (gameState === GameState.Active2) {
@@ -130,6 +149,35 @@ function tickWinState(reset: boolean, select: boolean): void {
   // the level selection.
   if ((switchReset && !reset) || (switchSelect && !select)) {
     gameState = GameState.GameSelect;
+  }
+}
+
+function ballMovement() {
+  // NOTE: This will need to be programmatic.
+  const eaten: boolean = false;
+
+  objectBall.previousY = objectBall.y;
+  objectBall.hitObject = ObjectId.None;
+  displayedRoomIndex = objectBall.room;
+
+  if (joystick.up) objectBall.y += 6;
+  if (joystick.down) objectBall.y -= 6;
+
+  if (!eaten) {
+    // handle collisions
+  } else {
+    objectBall.hitY = true;
+  }
+
+  objectBall.previousX = objectBall.x;
+
+  if (joystick.right) objectBall.x += 6;
+  if (joystick.left) objectBall.x -= 6;
+
+  if (!eaten) {
+    // handle collisions
+  } else {
+    objectBall.hitX = true;
   }
 }
 
