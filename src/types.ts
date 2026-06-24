@@ -1,3 +1,11 @@
+export interface JOYSTICK {
+  left: boolean;
+  right: boolean;
+  up: boolean;
+  down: boolean;
+  fire: boolean;
+}
+
 export const GameState = {
   GameSelect: 0,
   Active1: 1,
@@ -5,6 +13,8 @@ export const GameState = {
   Active3: 3,
   Win: 4,
 } as const;
+
+export type GameState = (typeof GameState)[keyof typeof GameState];
 
 export const ObjectId = {
   RightWall: -5,
@@ -30,8 +40,6 @@ export const ObjectId = {
   Chalice: 15,
   Magnet: 16,
 } as const;
-
-export type GameState = (typeof GameState)[keyof typeof GameState];
 
 export interface ROOM {
   graphicsData: number[];

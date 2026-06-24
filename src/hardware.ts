@@ -2,12 +2,18 @@
 
 import { FPS, OVERSCAN } from "./constants";
 import type { COLOR } from "./data/colors";
+import type { JOYSTICK } from "./types";
 
 let canvas: HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D;
 
 let keyReset: boolean = false;
 let keySelect: boolean = false;
+let keyLeft: boolean = false;
+let keyRight: boolean = false;
+let keyUp: boolean = false;
+let keyDown: boolean = false;
+let keyFire: boolean = false;
 
 let lastColor: COLOR = { r: 0, g: 0, b: 0 };
 let colorChangeCallback: (color: COLOR) => void;
@@ -81,6 +87,14 @@ export function readSelectSwitch(): boolean {
   return keySelect;
 }
 
+export function readJoystick(joystick: JOYSTICK): void {
+  joystick.left = keyLeft;
+  joystick.up = keyUp;
+  joystick.right = keyRight;
+  joystick.down = keyDown;
+  joystick.fire = keyFire;
+}
+
 export function random(): number {
   return Math.random();
 }
@@ -94,19 +108,19 @@ function applyKeyState(key: string, pressed: boolean): void {
       keySelect = pressed;
       break;
     case "ArrowUp":
-      // handle up movement
+      keyUp = pressed;
       break;
     case "ArrowDown":
-      // handle down movement
+      keyDown = pressed;
       break;
     case "ArrowLeft":
-      // handle left movement
+      keyLeft = pressed;
       break;
     case "ArrowRight":
-      // handle right movement
+      keyRight = pressed;
       break;
     case " ":
-      // handle drop action
+      keyFire = pressed;
       break;
   }
 }
