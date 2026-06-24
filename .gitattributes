@@ -59,6 +59,7 @@ package-lock.json   merge=ours
 yarn.lock           merge=ours
 
 # Export exclusions for archive.
+.stylelintignore    export-ignore
 .release-it.json    export-ignore
 jsconfig.json       export-ignore
 tsconfig.json       export-ignore
