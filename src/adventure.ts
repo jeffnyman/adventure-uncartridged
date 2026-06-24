@@ -57,11 +57,14 @@ function tickActiveGameState(select: boolean): void {
   } else {
     // Core level logic.
     if (gameState === GameState.Active1) {
-      // handle level 1
+      printDisplay();
+      ++gameState;
     } else if (gameState === GameState.Active2) {
-      // handle level 2
+      printDisplay();
+      ++gameState;
     } else if (gameState === GameState.Active3) {
-      // handle level 3
+      printDisplay();
+      gameState = GameState.Active1;
     }
   }
 }
