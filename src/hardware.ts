@@ -126,6 +126,6 @@ function applyKeyState(key: string, pressed: boolean): void {
 }
 
 function setupKeyHandlers(): void {
-  window.onkeydown = (e) => applyKeyState(e.key, true);
-  window.onkeyup = (e) => applyKeyState(e.key, false);
+  window.onkeydown = (e: KeyboardEvent): void => applyKeyState(e.key, true);
+  window.onkeyup = (e: KeyboardEvent): void => applyKeyState(e.key, false);
 }
