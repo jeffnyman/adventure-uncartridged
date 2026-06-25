@@ -71,7 +71,12 @@ export function startGame(): void {
 }
 
 function tickActiveGameState(select: boolean): void {
-  if (switchSelect && !select) {
+  if (objectDefs[ObjectId.Chalice].room === 0x12) {
+    // Win condition: the chalice is returned to the yellow
+    // castle (room 0x12).
+    gameState = GameState.Win;
+    winFlashTimer = 0xff;
+  } else if (switchSelect && !select) {
     // Select was released mid-game.
     gameState = GameState.GameSelect;
 
