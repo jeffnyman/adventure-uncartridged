@@ -62,6 +62,8 @@ export function startGame(): void {
 
   switchReset = reset;
   switchSelect = select;
+
+  advanceFlashColor();
 }
 
 function tickActiveGameState(select: boolean): void {
@@ -929,6 +931,20 @@ function setPlayfieldBit(
 
       if (bit && callback(cx, ypos) === true) return;
     }
+  }
+}
+
+function advanceFlashColor(): void {
+  flashColorHue += 2;
+
+  if (flashColorHue >= 360) {
+    flashColorHue -= 360;
+  }
+
+  flashColorLum += 11;
+
+  if (flashColorLum > 200) {
+    flashColorLum = 0;
   }
 }
 
