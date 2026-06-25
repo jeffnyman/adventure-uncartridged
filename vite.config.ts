@@ -24,6 +24,8 @@ export default defineConfig({
       "vite-plus/prefer-vite-plus-imports": "error",
       "typescript/explicit-function-return-type": "error",
       "typescript/strict-void-return": "error",
+      "typescript/no-unnecessary-type-assertion": "warn",
+      eqeqeq: "error",
     },
     options: { typeAware: true, typeCheck: true },
   },

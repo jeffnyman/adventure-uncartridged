@@ -163,7 +163,7 @@ function tickWinState(reset: boolean, select: boolean): void {
 function crossingBridge(room: number, x: number, y: number): boolean {
   const bridge: OBJECT = objectDefs[ObjectId.Bridge];
 
-  if (bridge.room == room && objectBall.linkedObject != ObjectId.Bridge) {
+  if (bridge.room === room && objectBall.linkedObject !== ObjectId.Bridge) {
     let xDiff = x / 2 - bridge.x;
 
     if (xDiff >= 0x0a && xDiff <= 0x17) {
@@ -188,7 +188,7 @@ function pickupPutdown(): void {
 
     if (hitIndex > ObjectId.None) {
       // Ignore the object that is already being carried.
-      if (hitIndex == objectBall.linkedObject) {
+      if (hitIndex === objectBall.linkedObject) {
         // Check the remainder of the objects.
         hitIndex = collisionCheckBallWithObjects(hitIndex + 1);
       }
@@ -270,7 +270,7 @@ function moveGroundObjectAcrossRooms(object: OBJECT): void {
 
 function groundObjectHandleDownWrap(object: OBJECT): void {
   for (const portId of [ObjectId.Port1, ObjectId.Port2, ObjectId.Port3]) {
-    if (object.room == entryRoomOffsets[portId]) {
+    if (object.room === entryRoomOffsets[portId]) {
       object.y = 0x5c;
       object.room = adjustRoomLevel(castleRoomOffsets[portId]);
 
@@ -284,8 +284,8 @@ function groundObjectHandleDownWrap(object: OBJECT): void {
 
 function checkPortalEntry(portId: number, port: OBJECT): boolean {
   if (
-    objectBall.room == port.room &&
-    port.state != 0x0c &&
+    objectBall.room === port.room &&
+    port.state !== 0x0c &&
     collisionCheckObject(port, objectBall.x - 4, objectBall.y - 1, 8, 8)
   ) {
     objectBall.room = entryRoomOffsets[portId];
@@ -347,7 +347,7 @@ function ballEnterCastle(portId: number): void {
 function ballHandleXRoomWrap(): void {
   if (objectBall.x >= SCREEN_WIDTH - 4) {
     objectBall.x = 5;
-    objectBall.room = objectBall.room == 0x3 ? 0x1e : roomDefs[objectBall.room].roomRight;
+    objectBall.room = objectBall.room === 0x3 ? 0x1e : roomDefs[objectBall.room].roomRight;
     objectBall.room = adjustRoomLevel(objectBall.room);
   } else if (objectBall.x < 4) {
     objectBall.x = SCREEN_WIDTH - 5;
@@ -361,11 +361,11 @@ function ballHandleYRoomWrap(tempX: number): void {
     objectBall.previousY = objectBall.y;
     objectBall.room = adjustRoomLevel(roomDefs[objectBall.room].roomUp);
   } else if (objectBall.y < 0x0d * 2) {
-    if (objectBall.room == entryRoomOffsets[ObjectId.Port1]) {
+    if (objectBall.room === entryRoomOffsets[ObjectId.Port1]) {
       ballEnterCastle(ObjectId.Port1);
-    } else if (objectBall.room == entryRoomOffsets[ObjectId.Port2]) {
+    } else if (objectBall.room === entryRoomOffsets[ObjectId.Port2]) {
       ballEnterCastle(ObjectId.Port2);
-    } else if (objectBall.room == entryRoomOffsets[ObjectId.Port3]) {
+    } else if (objectBall.room === entryRoomOffsets[ObjectId.Port3]) {
       ballEnterCastle(ObjectId.Port3);
     } else {
       const newY = SCREEN_HEIGHT + OVERSCAN;
@@ -457,7 +457,7 @@ function collisionCheckBallWithObjects(startIndex: number): number {
   for (let i = startIndex; objectDefs[i].graphicsData; i++) {
     const object: OBJECT = objectDefs[i];
 
-    if (object.displayed && objectBall.room == object.room) {
+    if (object.displayed && objectBall.room === object.room) {
       if (collisionCheckObject(object, objectBall.x - 4, objectBall.y - 1, 8, 8)) {
         return i;
       }
@@ -483,7 +483,7 @@ function collisionCheckBallWithWalls(room: number, x: number, y: number): boolea
   }
 
   if (currentRoom.flags & ROOMFLAG_RIGHTTHINWALL && x + 4 > 0x96 * 2) {
-    if (objectDefs[ObjectId.Dot].room != room) {
+    if (objectDefs[ObjectId.Dot].room !== room) {
       return hitWall;
     }
   }
@@ -538,7 +538,7 @@ function resolveCollisions(): void {
   if (!objectBall.hitX && !objectBall.hitY) {
     let hitObject = collisionCheckBallWithObjects(0);
 
-    if (hitObject > ObjectId.None && hitObject == objectBall.linkedObject) {
+    if (hitObject > ObjectId.None && hitObject === objectBall.linkedObject) {
       let diffX = objectBall.x - objectBall.previousX;
 
       objectBall.linkedObjectX += diffX / 2;
@@ -550,7 +550,7 @@ function resolveCollisions(): void {
   }
 
   if (objectBall.hitX) {
-    if (objectBall.hitObject > ObjectId.None && objectBall.hitObject == objectBall.linkedObject) {
+    if (objectBall.hitObject > ObjectId.None && objectBall.hitObject === objectBall.linkedObject) {
       let diffX = objectBall.x - objectBall.previousX;
       objectBall.linkedObjectX += diffX / 2;
     }
@@ -560,7 +560,7 @@ function resolveCollisions(): void {
   }
 
   if (objectBall.hitY) {
-    if (objectBall.hitObject > ObjectId.None && objectBall.hitObject == objectBall.linkedObject) {
+    if (objectBall.hitObject > ObjectId.None && objectBall.hitObject === objectBall.linkedObject) {
       let diffY = objectBall.y - objectBall.previousY;
       objectBall.linkedObjectY += diffY / 2;
     }
