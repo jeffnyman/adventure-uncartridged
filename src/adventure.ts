@@ -485,7 +485,7 @@ function collisionCheckBallWithWalls(room: number, x: number, y: number): boolea
 
   if (currentRoom.flags & ROOMFLAG_RIGHTTHINWALL && x + 4 > 0x96 * 2) {
     if (objectDefs[ObjectId.Dot].room !== room) {
-      return hitWall;
+      hitWall = true;
     }
   }
 
