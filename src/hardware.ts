@@ -1,9 +1,16 @@
 // Hardware abstraction layer.
 
-import "./audio";
+import {
+  soundDragonDie,
+  soundEaten,
+  soundPickUp,
+  soundPutDown,
+  soundRoar,
+  soundWon,
+} from "./audio";
 import { FPS, OVERSCAN } from "./constants";
 import type { COLOR } from "./data/colors";
-import type { JOYSTICK } from "./types";
+import { type JOYSTICK, Sound } from "./types";
 
 let canvas: HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D;
@@ -56,6 +63,36 @@ export function run(tick: () => void, onColorChange: (color: COLOR) => void): vo
   }
 
   requestAnimationFrame(gameLoop);
+}
+
+export function playSound(sound: Sound): void {
+  switch (sound) {
+    case Sound.Won:
+      void soundWon.play();
+      break;
+    case Sound.Roar:
+      if (soundRoar.paused) {
+        void soundRoar.play();
+      }
+      break;
+    case Sound.Eaten:
+      void soundEaten.play();
+      break;
+    case Sound.DragonDie:
+      soundRoar.pause();
+      soundRoar.currentTime = 0;
+      soundDragonDie.currentTime = 0;
+      void soundDragonDie.play();
+      break;
+    case Sound.PutDown:
+      soundPutDown.currentTime = 0;
+      void soundPutDown.play();
+      break;
+    case Sound.PickUp:
+      soundPickUp.currentTime = 0;
+      void soundPickUp.play();
+      break;
+  }
 }
 
 export function paintPixel(

@@ -88,3 +88,14 @@ export interface EXTENT {
   w: number;
   h: number;
 }
+
+export const Sound = {
+  Won: 0,
+  Roar: 1,
+  Eaten: 2,
+  DragonDie: 3,
+  PutDown: 4,
+  PickUp: 5,
+} as const;
+
+export type Sound = (typeof Sound)[keyof typeof Sound];
