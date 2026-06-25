@@ -81,6 +81,7 @@ function tickActiveGameState(select: boolean): void {
     // Core level logic.
     if (gameState === GameState.Active1) {
       ballMovement();
+      moveCarriedObject();
       printDisplay();
       ++gameState;
     } else if (gameState === GameState.Active2) {
@@ -202,6 +203,103 @@ function pickupPutdown(): void {
       }
     }
   }
+}
+
+function moveCarriedObject(): void {
+  if (objectBall.linkedObject >= 0) {
+    let object: OBJECT = objectDefs[objectBall.linkedObject];
+
+    object.x = objectBall.x / 2 + objectBall.linkedObjectX;
+    object.y = objectBall.y / 2 + objectBall.linkedObjectY;
+    object.room = objectBall.room;
+  }
+
+  // Called here to mirror the original 2600 ROM, which processed
+  // the ground-object movement in the same subroutine as the
+  // carried-object update.
+  moveGroundObject();
+}
+
+function moveGroundObject(): void {
+  // Handle ball going into the castles. The idea is to try each
+  // portal in order, stopping at first match.
+  for (const portId of [ObjectId.Port1, ObjectId.Port2, ObjectId.Port3]) {
+    if (checkPortalEntry(portId, objectDefs[portId])) break;
+  }
+
+  // Move any objects that need moving, and wrap objects from room
+  // to room.
+  for (let i = ObjectId.RedDragon; objectDefs[i].graphicsData; i++) {
+    const object: OBJECT = objectDefs[i];
+
+    object.x += object.movementX;
+    object.y += object.movementY;
+
+    moveGroundObjectAcrossRooms(object);
+
+    if (object.linkedObject > ObjectId.None) {
+      const linkedObj: OBJECT = objectDefs[object.linkedObject];
+
+      linkedObj.x = object.x + object.linkedObjectX;
+      linkedObj.y = object.y + object.linkedObjectY;
+      linkedObj.room = object.room;
+    }
+  }
+}
+
+function moveGroundObjectAcrossRooms(object: OBJECT): void {
+  if (object.y > 0x6a) {
+    object.y = 0x0d;
+    object.room = adjustRoomLevel(roomDefs[object.room].roomUp);
+  }
+
+  if (object.x < 0x03) {
+    object.x = 0x9a;
+    object.room = adjustRoomLevel(roomDefs[object.room].roomLeft);
+  }
+
+  if (object.y < 0x0d) {
+    groundObjectHandleDownWrap(object);
+  }
+
+  if (object.x > 0x9b) {
+    object.x = 0x03;
+    object.room = adjustRoomLevel(roomDefs[object.room].roomRight);
+  }
+}
+
+function groundObjectHandleDownWrap(object: OBJECT): void {
+  for (const portId of [ObjectId.Port1, ObjectId.Port2, ObjectId.Port3]) {
+    if (object.room == entryRoomOffsets[portId]) {
+      object.y = 0x5c;
+      object.room = adjustRoomLevel(castleRoomOffsets[portId]);
+
+      return;
+    }
+  }
+
+  object.y = 0x69;
+  object.room = adjustRoomLevel(roomDefs[object.room].roomDown);
+}
+
+function checkPortalEntry(portId: number, port: OBJECT): boolean {
+  if (
+    objectBall.room == port.room &&
+    port.state != 0x0c &&
+    collisionCheckObject(port, objectBall.x - 4, objectBall.y - 1, 8, 8)
+  ) {
+    objectBall.room = entryRoomOffsets[portId];
+    objectBall.y = OVERSCAN + OVERSCAN - 2;
+    objectBall.previousY = objectBall.y;
+
+    // This is important. The portal entry stays unlocked in case
+    // the player walks in carrying the key.
+    port.state = 0;
+
+    return true;
+  }
+
+  return false;
 }
 
 function ballMovement(): void {
@@ -540,7 +638,7 @@ function setupRoomObjects(): void {
 
     do {
       while (true) {
-        let room = random() * 0x1f;
+        let room = Math.floor(random()) * 0x1f;
 
         if (room >= lower && room <= upper) {
           objectDefs[object].room = room;
