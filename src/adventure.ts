@@ -35,6 +35,7 @@ import {
 import { game1Objects, game2Objects, objectBall, objectDefs, objectSurround } from "./data/objects";
 import { joystick } from "./data/action";
 import { batMatrix } from "./data/bats";
+import { magnetMatrix } from "./data/magnets";
 
 let switchReset: boolean;
 let switchSelect: boolean;
@@ -100,6 +101,7 @@ function tickActiveGameState(select: boolean): void {
       printDisplay();
       ++gameState;
     } else if (gameState === GameState.Active3) {
+      magnet();
       printDisplay();
       gameState = GameState.Active1;
     }
@@ -196,6 +198,40 @@ function tickWinState(reset: boolean, select: boolean): void {
   // the level selection.
   if ((switchReset && !reset) || (switchSelect && !select)) {
     gameState = GameState.GameSelect;
+  }
+}
+
+function magnet(): void {
+  const magnet: OBJECT = objectDefs[ObjectId.Magnet];
+  let i = 0;
+
+  while (magnetMatrix[i]) {
+    // Look for items in the magnet matrix that are in the same
+    // room as the magnet.
+    let object: OBJECT = objectDefs[magnetMatrix[i]];
+
+    if (magnetMatrix[i] !== objectBall.linkedObject && object.room === magnet.room) {
+      // Handle the horizontal and vertical axis. The vertical is
+      // offset by the height of the magnet so that items stick
+      // to the "bottom."
+      if (object.x < magnet.x) {
+        object.x++;
+      } else if (object.x > magnet.x) {
+        object.x--;
+      }
+
+      if (object.y < magnet.y - magnet.graphicsData![0]) {
+        object.y++;
+      } else if (object.y > magnet.y - magnet.graphicsData![0]) {
+        object.y--;
+      }
+
+      // Break the loop so that only the first item found in
+      // the matrix is attracted.
+      break;
+    }
+
+    ++i;
   }
 }
 
