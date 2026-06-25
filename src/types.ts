@@ -81,3 +81,10 @@ export interface BALL {
   hitY: boolean;
   hitObject: number;
 }
+
+export interface EXTENT {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}

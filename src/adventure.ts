@@ -20,7 +20,7 @@ import {
   roomLevelDiffs,
 } from "./data/rooms";
 import { COLOR_BLACK, COLOR_FLASH, COLOR_LTGRAY, colorTable, type COLOR } from "./data/colors";
-import type { OBJECT, ROOM } from "./types";
+import type { EXTENT, OBJECT, ROOM } from "./types";
 import {
   CLOCKS_HSYNC,
   CLOCKS_VSYNC,
@@ -92,12 +92,42 @@ function tickActiveGameState(select: boolean): void {
       resolveCollisions();
       ++displayedListIndex;
       surround();
+      portals();
       printDisplay();
       ++gameState;
     } else if (gameState === GameState.Active3) {
       printDisplay();
       gameState = GameState.Active1;
     }
+  }
+}
+
+// Portcullis state machine (each port runs independently):
+//   0      = open (unlocked); key contact starts the closing animation
+//   1–11   = closing animation (state increments each frame)
+//   12     = closed (locked); key contact starts the opening animation
+//   13–22  = opening animation (state increments each frame)
+//   >22    = resets to 0 (open) and restores the exit room connection
+function tickPortal(portId: number, port: OBJECT, key: OBJECT): void {
+  if (
+    port.room === objectBall.room &&
+    key.room === objectBall.room &&
+    (port.state === 0 || port.state === 12)
+  ) {
+    if (collisionCheckObjectWithObject(port, key)) {
+      port.state++;
+    }
+  }
+
+  if (port.state !== 0 && port.state !== 12) {
+    port.state++;
+  }
+
+  if (port.state > 22) {
+    port.state = 0;
+    roomDefs[entryRoomOffsets[portId]].roomDown = castleRoomOffsets[portId];
+  } else if (port.state === 12) {
+    roomDefs[entryRoomOffsets[portId]].roomDown = entryRoomOffsets[portId];
   }
 }
 
@@ -284,6 +314,12 @@ function groundObjectHandleDownWrap(object: OBJECT): void {
 
   object.y = 0x69;
   object.room = adjustRoomLevel(roomDefs[object.room].roomDown);
+}
+
+function portals(): void {
+  tickPortal(ObjectId.Port1, objectDefs[ObjectId.Port1], objectDefs[ObjectId.YellowKey]);
+  tickPortal(ObjectId.Port2, objectDefs[ObjectId.Port2], objectDefs[ObjectId.WhiteKey]);
+  tickPortal(ObjectId.Port3, objectDefs[ObjectId.Port3], objectDefs[ObjectId.BlackKey]);
 }
 
 function checkPortalEntry(portId: number, port: OBJECT): boolean {
@@ -485,6 +521,80 @@ function collisionCheckBallWithObjects(startIndex: number): number {
   return ObjectId.None;
 }
 
+function collisionCheckObjectWithObject(object1: OBJECT, object2: OBJECT): boolean {
+  const extent1 = calcPlayerSpriteExtents(object1);
+  const extent2 = calcPlayerSpriteExtents(object2);
+
+  if (
+    !hitTestRects(
+      extent1.x,
+      extent1.y,
+      extent1.w,
+      extent1.h,
+      extent2.x,
+      extent2.y,
+      extent2.w,
+      extent2.h,
+    )
+  ) {
+    return false;
+  }
+
+  const objectX1 = object1.x - CLOCKS_HSYNC;
+  let objectY1 = object1.y;
+  const objectSize1 = object1.size / 2 + 1;
+
+  const objectX2 = object2.x - CLOCKS_HSYNC;
+  let objectY2 = object2.y;
+  const objectSize2 = object2.size / 2 + 1;
+
+  const s1 = advanceToState(object1.graphicsData!, object1.states[object1.state]);
+  const s2 = advanceToState(object2.graphicsData!, object2.states[object2.state]);
+
+  for (let i = 0; i < s1.height; i++) {
+    const rowByte1 = object1.graphicsData![s1.index + i];
+
+    for (let bit1 = 0; bit1 < 8; bit1++) {
+      if (rowByte1 & (1 << (7 - bit1))) {
+        let i2 = s2.index;
+
+        for (let j = 0; j < s2.height; j++) {
+          const rowByte2 = object2.graphicsData![i2];
+
+          for (let bit2 = 0; bit2 < 8; bit2++) {
+            if (rowByte2 & (1 << (7 - bit2))) {
+              const wrappedX1 = wrapScreenX(objectX1 + bit1 * 2 * objectSize1);
+              const wrappedX2 = wrapScreenX(objectX2 + bit2 * 2 * objectSize2);
+
+              if (
+                hitTestRects(
+                  wrappedX1,
+                  objectY1,
+                  2 * objectSize1,
+                  2,
+                  wrappedX2,
+                  objectY2,
+                  2 * objectSize2,
+                  2,
+                )
+              ) {
+                return true;
+              }
+            }
+          }
+
+          ++i2;
+          objectY2 += 2;
+        }
+      }
+    }
+
+    objectY1 += 2;
+  }
+
+  return false;
+}
+
 function collisionCheckBallWithWalls(room: number, x: number, y: number): boolean {
   let hitWall = false;
 
@@ -596,6 +706,47 @@ function adjustRoomLevel(room: number): number {
   }
 
   return room;
+}
+
+function advanceToState(
+  graphicsData: number[],
+  stateIndex: number,
+): { index: number; height: number } {
+  let index = 0;
+  let height = graphicsData[index++];
+
+  for (let i = 0; i < stateIndex; i++) {
+    index += height;
+    height = graphicsData[index++];
+  }
+
+  return { index, height };
+}
+
+function wrapScreenX(x: number): number {
+  return x >= SCREEN_WIDTH ? x - SCREEN_WIDTH : x;
+}
+
+function calcPlayerSpriteExtents(object: OBJECT): EXTENT {
+  let cx = object.x * 2;
+  let cy = object.y * 2;
+  let size = object.size / 2 + 1;
+  let cw = 8 * 2 * size;
+  let stateIndex = object.states[object.state];
+
+  const dataP = object.graphicsData!;
+  let i = 0;
+  let ch = dataP[i++];
+
+  for (let x = 0; x < stateIndex; x++) {
+    i += ch;
+    ch = dataP[i++];
+  }
+
+  ch *= 2;
+  cx -= CLOCKS_HSYNC;
+
+  return { x: cx, y: cy, w: cw, h: ch };
 }
 
 function hitTestRects(
