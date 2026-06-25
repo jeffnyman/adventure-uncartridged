@@ -1,5 +1,6 @@
 // Hardware abstraction layer.
 
+import "./audio";
 import { FPS, OVERSCAN } from "./constants";
 import type { COLOR } from "./data/colors";
 import type { JOYSTICK } from "./types";
