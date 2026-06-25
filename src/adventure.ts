@@ -91,6 +91,7 @@ function tickActiveGameState(select: boolean): void {
       pickupPutdown();
       resolveCollisions();
       ++displayedListIndex;
+      surround();
       printDisplay();
       ++gameState;
     } else if (gameState === GameState.Active3) {
@@ -303,6 +304,20 @@ function checkPortalEntry(portId: number, port: OBJECT): boolean {
   }
 
   return false;
+}
+
+function surround(): void {
+  const currentRoom: ROOM = roomDefs[objectBall.room];
+
+  if (currentRoom.color === COLOR_LTGRAY) {
+    // Put the surround object in the same room as the ball and
+    // center it under the ball.
+    objectSurround.room = objectBall.room;
+    objectSurround.x = (objectBall.x - 0x1e) / 2;
+    objectSurround.y = (objectBall.y + 0x18) / 2;
+  } else {
+    objectSurround.room = -1;
+  }
 }
 
 function ballMovement(): void {
