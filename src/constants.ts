@@ -7,3 +7,4 @@ export const MAX_OBJECTS = 16;
 export const MAX_DISPLAY_OBJECTS = 2;
 export const CLOCKS_HSYNC = 2;
 export const CLOCKS_VSYNC = 4;
+export const PLAYFIELD_COLS = 20;

@@ -27,6 +27,7 @@ import {
   MAX_DISPLAY_OBJECTS,
   MAX_OBJECTS,
   OVERSCAN,
+  PLAYFIELD_COLS,
   SCREEN_HEIGHT,
   SCREEN_WIDTH,
   TOTAL_HEIGHT,
@@ -503,7 +504,7 @@ function collisionCheckBallWithWalls(room: number, x: number, y: number): boolea
           y - 4,
           8,
           8,
-          (cx + 20) * cell_width,
+          (cx + PLAYFIELD_COLS) * cell_width,
           ypos * cell_height,
           cell_width,
           cell_height,
@@ -712,7 +713,7 @@ function printDisplay(): void {
         color.r,
         color.g,
         color.b,
-        (cx + 20) * cell_width,
+        (cx + PLAYFIELD_COLS) * cell_width,
         ypos * cell_height,
         cell_width,
         cell_height,
@@ -919,7 +920,7 @@ function setPlayfieldBit(
     const pf2 = roomData[cy * 3 + 2];
     const ypos = 6 - cy;
 
-    for (let cx = 0; cx < 20; cx++) {
+    for (let cx = 0; cx < PLAYFIELD_COLS; cx++) {
       let bit = false;
 
       if (cx < 4) bit = pf0 & shiftreg[cx] ? true : false;
