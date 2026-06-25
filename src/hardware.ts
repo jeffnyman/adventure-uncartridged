@@ -10,7 +10,7 @@ import {
 } from "./audio";
 import { FPS, OVERSCAN } from "./constants";
 import type { COLOR } from "./data/colors";
-import { type JOYSTICK, Sound } from "./types";
+import { Difficulty, type JOYSTICK, Sound, type SWITCHES } from "./types";
 
 let canvas: HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D;
@@ -25,6 +25,9 @@ let keyFire: boolean = false;
 
 let lastColor: COLOR = { r: 0, g: 0, b: 0 };
 let colorChangeCallback: (color: COLOR) => void;
+
+let difficultyLeft: Difficulty = Difficulty.B;
+let difficultyRight: Difficulty = Difficulty.A;
 
 export function run(tick: () => void, onColorChange: (color: COLOR) => void): void {
   colorChangeCallback = onColorChange;
@@ -125,6 +128,19 @@ export function readSelectSwitch(): boolean {
   return keySelect;
 }
 
+export function readDifficultySwitches(): SWITCHES {
+  return { left: difficultyLeft, right: difficultyRight };
+}
+
+export function toggleDifficultyLeft(): "A" | "B" {
+  difficultyLeft = difficultyLeft === Difficulty.A ? Difficulty.B : Difficulty.A;
+  return difficultyLeft === Difficulty.A ? "A" : "B";
+}
+
+export function toggleDifficultyRight(): "A" | "B" {
+  difficultyRight = difficultyRight === Difficulty.A ? Difficulty.B : Difficulty.A;
+  return difficultyRight === Difficulty.A ? "A" : "B";
+}
 export function readJoystick(joystick: JOYSTICK): void {
   joystick.left = keyLeft;
   joystick.up = keyUp;

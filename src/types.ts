@@ -16,6 +16,18 @@ export const GameState = {
 
 export type GameState = (typeof GameState)[keyof typeof GameState];
 
+export const Difficulty = {
+  A: 0,
+  B: 1,
+} as const;
+
+export type Difficulty = (typeof Difficulty)[keyof typeof Difficulty];
+
+export interface SWITCHES {
+  left: Difficulty;
+  right: Difficulty;
+}
+
 export const ObjectId = {
   RightWall: -5,
   LeftWall: -4,
