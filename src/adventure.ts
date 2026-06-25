@@ -37,6 +37,7 @@ import { game1Objects, game2Objects, objectBall, objectDefs, objectSurround } fr
 import { joystick } from "./data/action";
 import { batMatrix } from "./data/bats";
 import { magnetMatrix } from "./data/magnets";
+import { greenDragonMatrix } from "./data/dragons";
 
 let switchReset: boolean;
 let switchSelect: boolean;
@@ -50,6 +51,7 @@ let gameLevel: number = 0;
 let winFlashTimer: number = 0;
 let flapTimer: number = 0;
 let batFedUpTimer: number = 0xff;
+let greenDragonTimer = 0;
 
 export function startGame(): void {
   const reset = readResetSwitch();
@@ -108,6 +110,7 @@ function tickActiveGameState(select: boolean): void {
       printDisplay();
       ++gameState;
     } else if (gameState === GameState.Active3) {
+      moveGreenDragon();
       magnet();
       printDisplay();
       gameState = GameState.Active1;
@@ -206,6 +209,94 @@ function tickWinState(reset: boolean, select: boolean): void {
   if ((switchReset && !reset) || (switchSelect && !select)) {
     gameState = GameState.GameSelect;
   }
+}
+
+function moveGreenDragon(): void {
+  greenDragonTimer = moveDragon(
+    objectDefs[ObjectId.GreenDragon],
+    greenDragonMatrix,
+    2,
+    greenDragonTimer,
+  );
+}
+
+function moveDragon(dragon: OBJECT, matrix: number[], speed: number, timer: number): number {
+  if (dragon.state === 0) {
+    timer = dragonHandleAlive(dragon, matrix, speed, timer);
+  } else if (dragon.state === 1) {
+    // Dragon is dead. Do nothing.
+  } else if (dragon.state === 2) {
+    dragonHandleEaten(dragon);
+  } else if (dragon.state === 3) {
+    timer = dragonHandleRoar(dragon, timer);
+  }
+
+  return timer;
+}
+
+function dragonHandleRoar(dragon: OBJECT, timer: number): number {
+  --timer;
+
+  if (timer <= 0) {
+    // If the dragon has roared, transition to the eaten state.
+    if (
+      objectBall.room === dragon.room &&
+      collisionCheckObject(dragon, objectBall.x - 4, objectBall.y - 1, 8, 8)
+    ) {
+      dragon.linkedObject = ObjectId.Ball;
+      dragon.state = 2;
+    } else {
+      dragon.state = 0;
+    }
+  }
+
+  return timer;
+}
+
+function dragonHandleEaten(dragon: OBJECT): void {
+  objectBall.room = dragon.room;
+  objectBall.x = (dragon.x + 3) * 2;
+  objectBall.y = (dragon.y - 10) * 2;
+
+  dragon.movementX = 0;
+  dragon.movementY = 0;
+
+  displayedRoomIndex = objectBall.room;
+}
+
+function dragonHandleAlive(dragon: OBJECT, matrix: number[], speed: number, timer: number): number {
+  if (
+    objectBall.room === dragon.room &&
+    collisionCheckObject(dragon, objectBall.x - 4, objectBall.y - 4, 8, 8)
+  ) {
+    // If the ball hits the dragon, the roar state is transitioned to.
+    dragon.state = 3;
+
+    dragon.x = objectBall.x / 2;
+    dragon.y = objectBall.y / 2;
+    dragon.movementX = 0;
+    dragon.movementY = 0;
+  }
+
+  if (collisionCheckObjectWithObject(dragon, objectDefs[ObjectId.Sword])) {
+    // If the sword hits the dragon, the dead state is transitioned to.
+    dragon.state = 1;
+
+    dragon.movementX = 0;
+    dragon.movementY = 0;
+  }
+
+  if (dragon.state === 0) {
+    dragonSeekFlee(dragon, matrix, speed);
+  }
+
+  return timer;
+}
+
+function dragonSeekFlee(dragon: OBJECT, matrix: number[], speed: number): void {
+  console.log(dragon);
+  console.log(matrix);
+  console.log(speed);
 }
 
 function magnet(): void {
