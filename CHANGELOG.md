@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/jeffnyman/adventure-uncartridged/compare/0.1.0...0.2.0) (2026-06-25)
+
+### Features
+
+- player can move through rooms ([402c2a0](https://github.com/jeffnyman/adventure-uncartridged/commit/402c2a0ba3b675af4d42349e30ed311081a2cf99))
+- player can pick up and drop items ([0c0d363](https://github.com/jeffnyman/adventure-uncartridged/commit/0c0d36307804eb18935018c93448350823930ad3))
+- player object can be moved ([609198f](https://github.com/jeffnyman/adventure-uncartridged/commit/609198ff33899645630de5d9b0f1d3b238e47152))
+
 ## 0.1.0 (2026-06-24)
 
 ### Features
