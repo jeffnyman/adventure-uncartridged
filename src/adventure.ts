@@ -2,13 +2,14 @@
 
 import {
   paintPixel,
+  playSound,
   random,
   readJoystick,
   readResetSwitch,
   readSelectSwitch,
   roomColor,
 } from "./hardware";
-import { GameState, ObjectId } from "./types";
+import { GameState, ObjectId, Sound } from "./types";
 import {
   castleRoomOffsets,
   entryRoomOffsets,
@@ -76,6 +77,7 @@ function tickActiveGameState(select: boolean): void {
     // castle (room 0x12).
     gameState = GameState.Win;
     winFlashTimer = 0xff;
+    playSound(Sound.Won);
   } else if (switchSelect && !select) {
     // Select was released mid-game.
     gameState = GameState.GameSelect;
@@ -344,6 +346,7 @@ function pickupPutdown(): void {
   if (joystick.fire && objectBall.linkedObject >= 0) {
     // Put down the current object.
     objectBall.linkedObject = ObjectId.None;
+    playSound(Sound.PutDown);
   } else {
     // Determine if the player is touching any carryable object.
     let hitIndex = collisionCheckBallWithObjects(ObjectId.Sword);
@@ -362,6 +365,8 @@ function pickupPutdown(): void {
         // Calculate the XY offsets from the ball's position.
         objectBall.linkedObjectX = objectDefs[hitIndex].x - objectBall.x / 2;
         objectBall.linkedObjectY = objectDefs[hitIndex].y - objectBall.y / 2;
+
+        playSound(Sound.PickUp);
       }
     }
   }
