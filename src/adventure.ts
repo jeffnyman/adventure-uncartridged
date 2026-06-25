@@ -84,6 +84,7 @@ function tickActiveGameState(select: boolean): void {
       printDisplay();
       ++gameState;
     } else if (gameState === GameState.Active2) {
+      pickupPutdown();
       resolveCollisions();
       ++displayedListIndex;
       printDisplay();
@@ -176,7 +177,34 @@ function crossingBridge(room: number, x: number, y: number): boolean {
   return false;
 }
 
-function ballMovement() {
+function pickupPutdown(): void {
+  if (joystick.fire && objectBall.linkedObject >= 0) {
+    // Put down the current object.
+    objectBall.linkedObject = ObjectId.None;
+  } else {
+    // Determine if the player is touching any carryable object.
+    let hitIndex = collisionCheckBallWithObjects(ObjectId.Sword);
+
+    if (hitIndex > ObjectId.None) {
+      // Ignore the object that is already being carried.
+      if (hitIndex == objectBall.linkedObject) {
+        // Check the remainder of the objects.
+        hitIndex = collisionCheckBallWithObjects(hitIndex + 1);
+      }
+
+      if (hitIndex > ObjectId.None) {
+        // Pick up the object.
+        objectBall.linkedObject = hitIndex;
+
+        // Calculate the XY offsets from the ball's position.
+        objectBall.linkedObjectX = objectDefs[hitIndex].x - objectBall.x / 2;
+        objectBall.linkedObjectY = objectDefs[hitIndex].y - objectBall.y / 2;
+      }
+    }
+  }
+}
+
+function ballMovement(): void {
   const tempX = objectBall.x;
   const tempY = objectBall.y;
 
