@@ -34,6 +34,7 @@ import {
 } from "./constants";
 import { game1Objects, game2Objects, objectBall, objectDefs, objectSurround } from "./data/objects";
 import { joystick } from "./data/action";
+import { batMatrix } from "./data/bats";
 
 let switchReset: boolean;
 let switchSelect: boolean;
@@ -45,6 +46,8 @@ let flashColorHue: number = 0;
 let flashColorLum: number = 0;
 let gameLevel: number = 0;
 let winFlashTimer: number = 0;
+let flapTimer: number = 0;
+let batFedUpTimer: number = 0xff;
 
 export function startGame(): void {
   const reset = readResetSwitch();
@@ -92,6 +95,7 @@ function tickActiveGameState(select: boolean): void {
       resolveCollisions();
       ++displayedListIndex;
       surround();
+      moveBat();
       portals();
       printDisplay();
       ++gameState;
@@ -140,6 +144,7 @@ function tickResetState(): void {
   objectBall.linkedObject = ObjectId.None;
 
   displayedRoomIndex = objectBall.room;
+  batFedUpTimer = 0xff;
 
   if (gameState === GameState.GameSelect) {
     // Re-initialize level. Full game reset.
@@ -191,6 +196,88 @@ function tickWinState(reset: boolean, select: boolean): void {
   // the level selection.
   if ((switchReset && !reset) || (switchSelect && !select)) {
     gameState = GameState.GameSelect;
+  }
+}
+
+function moveBat(): void {
+  const bat: OBJECT = objectDefs[ObjectId.Bat];
+
+  batUpdateFlap(bat);
+
+  // The bat "fed up" timer is set so that 0xff means the bat steals
+  // immediately. This counts up while the bat holds something, and
+  // resets to 0 on pickup. The inverted sense (high value = hungry)
+  // mirrors the original ROM's timer logic.
+  if (bat.linkedObject !== ObjectId.None && batFedUpTimer < 0xff) {
+    ++batFedUpTimer;
+  }
+
+  if (batFedUpTimer >= 0xff) {
+    const batExtent = calcPlayerSpriteExtents(bat);
+
+    batExtent.x -= 7;
+    batExtent.y -= 7;
+    batExtent.w += 7 * 2;
+    batExtent.h += 7 * 2;
+
+    batSeekAndPickUp(bat, batExtent);
+  }
+}
+
+function batSeekAndPickUp(bat: OBJECT, batExtent: EXTENT): void {
+  let i = 0;
+
+  do {
+    const seekObject = objectDefs[batMatrix[i]];
+
+    if (seekObject.room === bat.room && bat.linkedObject !== batMatrix[i]) {
+      bat.movementX = batComputeAxisMovement(bat.x, seekObject.x);
+      bat.movementY = batComputeAxisMovement(bat.y, seekObject.y);
+
+      const objExtent = calcPlayerSpriteExtents(seekObject);
+
+      if (
+        hitTestRects(
+          batExtent.x,
+          batExtent.y,
+          batExtent.w,
+          batExtent.h,
+          objExtent.x,
+          objExtent.y,
+          objExtent.w,
+          objExtent.h,
+        )
+      ) {
+        if (batMatrix[i] === objectBall.linkedObject) {
+          objectBall.linkedObject = ObjectId.None;
+        }
+
+        bat.linkedObject = batMatrix[i];
+        bat.linkedObjectX = 8;
+        bat.linkedObjectY = 0;
+        batFedUpTimer = 0;
+      }
+      break;
+    }
+  } while (batMatrix[++i]);
+}
+
+function batComputeAxisMovement(batPos: number, seekPos: number): number {
+  if (batPos < seekPos) {
+    return 3;
+  }
+
+  if (batPos > seekPos) {
+    return -3;
+  }
+
+  return 0;
+}
+
+function batUpdateFlap(bat: OBJECT): void {
+  if (++flapTimer >= 0x04) {
+    bat.state = bat.state === 0 ? 1 : 0;
+    flapTimer = 0;
   }
 }
 
