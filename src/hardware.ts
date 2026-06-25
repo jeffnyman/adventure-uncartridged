@@ -47,7 +47,7 @@ export function run(tick: () => void, onColorChange: (color: COLOR) => void): vo
 
   function gameLoop(timestamp: number): void {
     if (timestamp - lastTimestamp >= frameInterval) {
-      lastTimestamp = timestamp;
+      lastTimestamp += frameInterval;
       tick();
     }
 
