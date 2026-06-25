@@ -20,7 +20,11 @@ export default defineConfig({
   fmt: {},
   lint: {
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
-    rules: { "vite-plus/prefer-vite-plus-imports": "error" },
+    rules: {
+      "vite-plus/prefer-vite-plus-imports": "error",
+      "typescript/explicit-function-return-type": "error",
+      "typescript/strict-void-return": "error",
+    },
     options: { typeAware: true, typeCheck: true },
   },
   run: {

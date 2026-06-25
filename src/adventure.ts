@@ -246,7 +246,7 @@ function ballEnterCastle(portId: number): void {
   objectBall.room = adjustRoomLevel(castleRoomOffsets[portId]);
 }
 
-function ballHandleXRoomWrap() {
+function ballHandleXRoomWrap(): void {
   if (objectBall.x >= SCREEN_WIDTH - 4) {
     objectBall.x = 5;
     objectBall.room = objectBall.room == 0x3 ? 0x1e : roomDefs[objectBall.room].roomRight;
@@ -501,7 +501,7 @@ function hitTestRects(
   return intersects;
 }
 
-function setupRoomObjects() {
+function setupRoomObjects(): void {
   for (let i = 0; objectDefs[i].graphicsData; i++) {
     let object: OBJECT = objectDefs[i];
 
@@ -555,7 +555,7 @@ function setupRoomObjects() {
   }
 }
 
-function isGameActive() {
+function isGameActive(): boolean {
   return (
     gameState === GameState.Active1 ||
     gameState === GameState.Active2 ||
@@ -692,7 +692,7 @@ function drawObjects(room: number): void {
   drawThinWalls(room, colorFirst, colorLast);
 }
 
-function drawObject(object: OBJECT) {
+function drawObject(object: OBJECT): void {
   let color: COLOR = object.color === COLOR_FLASH ? getFlashColor() : colorTable[object.color];
   let cx = object.x * 2;
   let cy = object.y * 2;
