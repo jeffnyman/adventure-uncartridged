@@ -97,3 +97,18 @@ footer {
   height: auto;
   aspect-ratio: 320 / 192;
 }
+
+.fullscreen {
+  height: 100vh;
+  justify-content: center;
+
+  header,
+  footer {
+    display: none;
+  }
+
+  .canvas {
+    width: auto;
+    height: 100vh;
+  }
+}

@@ -12,6 +12,7 @@ const body = document.querySelector("body");
 
 const btnLeftDiff = document.querySelector<HTMLButtonElement>("#btn-left-difficulty");
 const btnRightDiff = document.querySelector<HTMLButtonElement>("#btn-right-difficulty");
+const btnFullScreen = document.querySelector<HTMLButtonElement>("#btn-fullscreen");
 
 if (btnLeftDiff) {
   btnLeftDiff.onclick = (): void => {
@@ -27,6 +28,20 @@ if (btnRightDiff) {
     btnRightDiff.textContent = `Right: ${label}`;
     btnRightDiff.classList.toggle("difficulty-active", label === "A");
   };
+}
+
+if (btnFullScreen && body) {
+  btnFullScreen.onclick = (): void => {
+    const entering = body.classList.toggle("fullscreen");
+    btnFullScreen.textContent = entering ? "Exit Full Screen" : "Full Screen";
+  };
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && body.classList.contains("fullscreen")) {
+      body.classList.remove("fullscreen");
+      btnFullScreen.textContent = "Full Screen";
+    }
+  });
 }
 
 function onRoomColorChange(color: COLOR): void {
