@@ -1,6 +1,6 @@
 import { describe, expect, test } from "./fixtures";
 
-import { hitTestRects, calcPlayerSpriteExtents } from "../src/adventure";
+import { hitTestRects, calcPlayerSpriteExtents, collisionCheckObject } from "../src/adventure";
 
 // ----------------------------------------------------------------
 // hitTestRects
@@ -167,5 +167,63 @@ describe("calcPlayerSpriteExtents", () => {
     });
 
     expect(calcPlayerSpriteExtents(obj)).toEqual({ x: 18, y: 40, w: 72, h: 2 });
+  });
+});
+
+// ----------------------------------------------------------------
+// collisionCheckObject
+//
+// Tests a rectangle (x, y, width, height) against an OBJECT's
+// pixel map.
+// Object pixel positions: objectX = obj.x*2 − 2, objectY = obj.y*2
+// For ONE_PIXEL_GFX at x=5,y=10, the pixel lands at screen
+// coord (8, 20) with size (2,2).
+// ----------------------------------------------------------------
+
+describe("collisionCheckObject", () => {
+  test("detects a rectangle exactly at the object pixel", ({ onePixel }) => {
+    expect(collisionCheckObject(onePixel, 8, 20, 2, 2)).toBe(true);
+  });
+
+  test("detects a larger rectangle that overlaps the object pixel", ({ onePixel }) => {
+    // Pixel at (8, 20, 2, 2): top=20, bottom=18 in flipped-y space.
+    // (7, 21, 4, 4) encloses the pixel on all sides.
+    expect(collisionCheckObject(onePixel, 7, 21, 4, 4)).toBe(true);
+  });
+
+  test("returns false for a rectangle whose left edge touches the pixel right edge", ({
+    onePixel,
+  }) => {
+    // Pixel occupies x 8–10; rect starts at x=10 → touching but not overlapping
+    expect(collisionCheckObject(onePixel, 10, 20, 2, 2)).toBe(false);
+  });
+
+  test("returns false for a rectangle far from the object", ({ onePixel }) => {
+    expect(collisionCheckObject(onePixel, 200, 100, 10, 10)).toBe(false);
+  });
+
+  test("detects the second pixel in the top row (bit 6)", ({ threeRowObj }) => {
+    expect(collisionCheckObject(threeRowObj, 10, 20, 2, 2)).toBe(true);
+  });
+
+  test("detects a hit in the bottom row, confirming Y traversal reaches all rows", ({
+    threeRowObj,
+  }) => {
+    expect(collisionCheckObject(threeRowObj, 8, 16, 2, 2)).toBe(true);
+  });
+
+  test("returns false for a rectangle to the right of all pixels", ({ threeRowObj }) => {
+    // Pixels span x 18–22; a rect at x=22 only touches, not overlaps.
+    expect(collisionCheckObject(threeRowObj, 22, 20, 2, 2)).toBe(false);
+  });
+
+  test("detects a hit at the wrapped position when a pixel crosses the right screen edge", ({
+    nearEdgeObj,
+  }) => {
+    // Sprite with only the rightmost pixel set (bit 7 of the byte → bit index 7).
+    // objectX = 158*2 − 2 = 314; bit 7 pixel: unwrapped x = 314 + 7*2 = 328.
+    // 328 >= ADVENTURE_SCREEN_WIDTH (320) → wraps to 8.
+    expect(collisionCheckObject(nearEdgeObj, 8, 20, 2, 2)).toBe(true); // wrapped position hits
+    expect(collisionCheckObject(nearEdgeObj, 328, 20, 2, 2)).toBe(false); // unwrapped position misses
   });
 });

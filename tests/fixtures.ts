@@ -13,6 +13,9 @@ export const test = base.extend<{
     states: number[];
     state?: number;
   }) => OBJECT;
+  onePixel: OBJECT;
+  threeRowObj: OBJECT;
+  nearEdgeObj: OBJECT;
 }>({
   // eslint-disable-next-line no-empty-pattern
   makeObject: async ({}, use) => {
@@ -32,5 +35,41 @@ export const test = base.extend<{
       linkedObjectY: 0,
       displayed: false,
     }));
+  },
+  onePixel: async ({ makeObject }, use) => {
+    await use(
+      makeObject({
+        x: 5,
+        y: 10,
+        size: 0,
+        room: 0,
+        graphicsData: [1, 0x80],
+        states: [0],
+      }),
+    );
+  },
+  threeRowObj: async ({ makeObject }, use) => {
+    await use(
+      makeObject({
+        x: 5,
+        y: 10,
+        size: 0,
+        room: 0,
+        graphicsData: [3, 0xc0, 0xc0, 0xc0],
+        states: [0],
+      }),
+    );
+  },
+  nearEdgeObj: async ({ makeObject }, use) => {
+    await use(
+      makeObject({
+        x: 158,
+        y: 10,
+        size: 0,
+        room: 0,
+        graphicsData: [1, 0x01],
+        states: [0],
+      }),
+    );
   },
 });
