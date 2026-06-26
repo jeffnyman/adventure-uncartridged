@@ -10,6 +10,7 @@ audit(import.meta.env.VITE_APP_TITLE);
 
 const body = document.querySelector("body");
 const toast = document.querySelector<HTMLDivElement>("#toast");
+const GAME_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "]);
 
 function showToast(message: string): void {
   if (!toast) return;
@@ -47,7 +48,9 @@ if (btnRightDiff) {
 if (btnFullScreen && body) {
   btnFullScreen.onclick = (): void => {
     const entering = body.classList.toggle("fullscreen");
+
     btnFullScreen.textContent = entering ? "Exit Full Screen" : "Full Screen";
+
     if (entering) {
       showToast("Press Escape to exit full screen");
     } else {
@@ -66,7 +69,13 @@ if (btnFullScreen && body) {
         toast.classList.remove("showing");
       }
     }
+
+    if (GAME_KEYS.has(e.key)) {
+      body.classList.add("hide-cursor");
+    }
   });
+
+  window.addEventListener("mousemove", () => body.classList.remove("hide-cursor"));
 }
 
 function onRoomColorChange(color: COLOR): void {

@@ -150,3 +150,8 @@ footer {
     height: 100vh;
   }
 }
+
+.hide-cursor,
+.hide-cursor * {
+  cursor: none;
+}
