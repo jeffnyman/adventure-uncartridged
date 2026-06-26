@@ -745,7 +745,11 @@ function collisionCheckBallWithObjects(startIndex: number): number {
   return ObjectId.None;
 }
 
-function collisionCheckObjectWithObject(object1: OBJECT, object2: OBJECT): boolean {
+export function collisionCheckObjectWithObject(object1: OBJECT, object2: OBJECT): boolean {
+  if (object1.room !== object2.room) {
+    return false;
+  }
+
   const extent1 = calcPlayerSpriteExtents(object1);
   const extent2 = calcPlayerSpriteExtents(object2);
 

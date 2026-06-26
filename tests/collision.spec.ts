@@ -1,6 +1,11 @@
 import { describe, expect, test } from "./fixtures";
 
-import { hitTestRects, calcPlayerSpriteExtents, collisionCheckObject } from "../src/adventure";
+import {
+  hitTestRects,
+  calcPlayerSpriteExtents,
+  collisionCheckObject,
+  collisionCheckObjectWithObject,
+} from "../src/adventure";
 
 // ----------------------------------------------------------------
 // hitTestRects
@@ -225,5 +230,148 @@ describe("collisionCheckObject", () => {
     // 328 >= ADVENTURE_SCREEN_WIDTH (320) → wraps to 8.
     expect(collisionCheckObject(nearEdgeObj, 8, 20, 2, 2)).toBe(true); // wrapped position hits
     expect(collisionCheckObject(nearEdgeObj, 328, 20, 2, 2)).toBe(false); // unwrapped position misses
+  });
+});
+
+// ----------------------------------------------------------------
+// collisionCheckObjectWithObject
+//
+// Checks two OBJECTs for pixel-level collision, after an extent
+// pre-filter and a room equality check.
+// ----------------------------------------------------------------
+
+describe("collisionCheckObjectWithObject", () => {
+  test("returns true when two objects occupy the same position in the same room", ({
+    makeObject,
+  }) => {
+    const objA = makeObject({
+      x: 5,
+      y: 10,
+      size: 0,
+      room: 1,
+      graphicsData: [1, 0x80],
+      states: [0],
+    });
+    const objB = makeObject({
+      x: 5,
+      y: 10,
+      size: 0,
+      room: 1,
+      graphicsData: [1, 0x80],
+      states: [0],
+    });
+
+    expect(collisionCheckObjectWithObject(objA, objB)).toBe(true);
+  });
+
+  test("returns false immediately when objects are in different rooms", ({ makeObject }) => {
+    const objA = makeObject({
+      x: 5,
+      y: 10,
+      size: 0,
+      room: 1,
+      graphicsData: [1, 0x80],
+      states: [0],
+    });
+    const objC = makeObject({
+      x: 5,
+      y: 10,
+      size: 0,
+      room: 2,
+      graphicsData: [1, 0x80],
+      states: [0],
+    });
+
+    expect(collisionCheckObjectWithObject(objA, objC)).toBe(false);
+  });
+
+  test("returns false when objects are in the same room but their extents do not overlap", ({
+    makeObject,
+  }) => {
+    const objA = makeObject({
+      x: 5,
+      y: 10,
+      size: 0,
+      room: 1,
+      graphicsData: [1, 0x80],
+      states: [0],
+    });
+    const objD = makeObject({
+      x: 100,
+      y: 100,
+      size: 0,
+      room: 1,
+      graphicsData: [1, 0x80],
+      states: [0],
+    });
+
+    expect(collisionCheckObjectWithObject(objA, objD)).toBe(false);
+  });
+
+  test("returns true when adjacent objects share an overlapping pixel block", ({ makeObject }) => {
+    const objA = makeObject({
+      x: 5,
+      y: 10,
+      size: 0,
+      room: 1,
+      graphicsData: [1, 0x80],
+      states: [0],
+    });
+    const objE = makeObject({
+      x: 6,
+      y: 10,
+      size: 0,
+      room: 1,
+      graphicsData: [1, 0x80],
+      states: [0],
+    });
+
+    expect(collisionCheckObjectWithObject(objA, objE)).toBe(true);
+  });
+
+  test("returns false when extents overlap but pixels are on opposite ends of the sprite", ({
+    makeObject,
+  }) => {
+    const objLeft = makeObject({
+      x: 5,
+      y: 10,
+      size: 0,
+      room: 1,
+      graphicsData: [1, 0x80],
+      states: [0],
+    });
+    const objRight = makeObject({
+      x: 5,
+      y: 10,
+      size: 0,
+      room: 1,
+      graphicsData: [1, 0x01],
+      states: [0],
+    });
+
+    expect(collisionCheckObjectWithObject(objLeft, objRight)).toBe(false);
+  });
+
+  test("returns true when two multi-row sprites overlap, exercising the full row scan", ({
+    makeObject,
+  }) => {
+    const objP = makeObject({
+      x: 5,
+      y: 10,
+      size: 0,
+      room: 1,
+      graphicsData: [3, 0x80, 0x80, 0x80],
+      states: [0],
+    });
+    const objQ = makeObject({
+      x: 5,
+      y: 10,
+      size: 0,
+      room: 1,
+      graphicsData: [3, 0x80, 0x80, 0x80],
+      states: [0],
+    });
+
+    expect(collisionCheckObjectWithObject(objP, objQ)).toBe(true);
   });
 });
