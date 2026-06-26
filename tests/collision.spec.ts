@@ -3,14 +3,14 @@ import { describe, expect, test } from "vite-plus/test";
 import { hitTestRects } from "../src/adventure";
 
 // ----------------------------------------------------------------
-// HitTestRects
+// hitTestRects
 //
 // Coordinates are in the game's flipped-y space: ay is the TOP of
 // rect A, (ay - aheight) is the BOTTOM. Touching edges are not
 // considered overlapping.
 // ----------------------------------------------------------------
 
-describe("HitTestRects", () => {
+describe("hitTestRects", () => {
   test("returns true for identical rectangles", () => {
     expect(hitTestRects(0, 10, 10, 10, 0, 10, 10, 10)).toBe(true);
   });
