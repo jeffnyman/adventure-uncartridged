@@ -973,7 +973,7 @@ function calcPlayerSpriteExtents(object: OBJECT): EXTENT {
   return { x: cx, y: cy, w: cw, h: ch };
 }
 
-function hitTestRects(
+export function hitTestRects(
   ax: number,
   ay: number,
   awidth: number,
