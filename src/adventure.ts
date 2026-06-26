@@ -951,7 +951,7 @@ function wrapScreenX(x: number): number {
   return x >= SCREEN_WIDTH ? x - SCREEN_WIDTH : x;
 }
 
-function calcPlayerSpriteExtents(object: OBJECT): EXTENT {
+export function calcPlayerSpriteExtents(object: OBJECT): EXTENT {
   let cx = object.x * 2;
   let cy = object.y * 2;
   let size = object.size / 2 + 1;
