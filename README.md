@@ -1,10 +1,14 @@
-# Adventure Uncartridged
+# Adventure: Uncartridged
 
 _From ROM to DOM_
+
+<p align="center"><a href="https://github.com/jeffnyman/adventure-uncartridged/actions/workflows/ci.yml"><img src="https://github.com/jeffnyman/adventure-uncartridged/actions/workflows/ci.yml/badge.svg" alt="CI status"></a></p>
 
 This project is my attempt to recreate the Atari 2600 game _Adventure_ in TypeScript so it's easily playable in a browser. My goal is complete fidelity with the original assembled game, the source code of which is included in this repository.
 
 ## Contributing
+
+This project uses [Vite Plus](https://viteplus.dev) as its unified toolchain. All commands below go through the `vp` CLI. To contribute, it's highly recommended to install it before proceeding.
 
 ### Setup
 
