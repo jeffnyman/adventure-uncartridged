@@ -27,7 +27,7 @@ let lastColor: COLOR = { r: 0, g: 0, b: 0 };
 let colorChangeCallback: (color: COLOR) => void;
 
 let difficultyLeft: Difficulty = Difficulty.B;
-let difficultyRight: Difficulty = Difficulty.A;
+let difficultyRight: Difficulty = Difficulty.B;
 
 export function run(tick: () => void, onColorChange: (color: COLOR) => void): void {
   colorChangeCallback = onColorChange;
