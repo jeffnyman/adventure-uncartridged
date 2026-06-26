@@ -1301,7 +1301,7 @@ function buildRoomDisplayList(room: number): {
 //
 // PF0 uses only its high nibble (bits 4–7) and is read LSB→MSB;
 // PF1 is read MSB→LSB; PF2 reverses back to LSB→MSB.
-function setPlayfieldBit(
+export function setPlayfieldBit(
   roomData: number[],
   callback: (cx: number, ypos: number) => boolean | void,
 ): void {
