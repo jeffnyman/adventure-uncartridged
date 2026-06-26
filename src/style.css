@@ -98,6 +98,44 @@ footer {
   aspect-ratio: 320 / 192;
 }
 
+@keyframes toast-show {
+  0% {
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  75% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: oklch(20% 0 0deg / 85%);
+  color: oklch(90% 0 0deg);
+  border: 1px solid var(--game-text);
+  border-radius: 6px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+
+  &.showing {
+    animation: toast-show 3s ease forwards;
+  }
+}
+
 .fullscreen {
   height: 100vh;
   justify-content: center;
