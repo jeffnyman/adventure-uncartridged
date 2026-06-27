@@ -27,7 +27,10 @@ let lastColor: COLOR = { r: 0, g: 0, b: 0 };
 let colorChangeCallback: (color: COLOR) => void;
 
 // Difficulty B (the amateur setting) was the hardware default on
-// the original 2600.
+// the original 2600. When the left difficulty switch is in the B
+// position, the Dragons will hesitate before they bite the player.
+// If the right difficulty switch is in the B position all Dragons
+// will run from the sword.
 let difficultyLeft: Difficulty = Difficulty.B;
 let difficultyRight: Difficulty = Difficulty.B;
 

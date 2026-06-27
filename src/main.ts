@@ -33,6 +33,7 @@ if (btnLeftDiff) {
 
     btnLeftDiff.textContent = `Left: ${label}`;
     btnLeftDiff.classList.toggle("difficulty-active", label === "A");
+    btnLeftDiff.blur();
   };
 }
 
@@ -42,6 +43,7 @@ if (btnRightDiff) {
 
     btnRightDiff.textContent = `Right: ${label}`;
     btnRightDiff.classList.toggle("difficulty-active", label === "A");
+    btnRightDiff.blur();
   };
 }
 

@@ -2,12 +2,13 @@ import {
   paintPixel,
   playSound,
   random,
+  readDifficultySwitches,
   readJoystick,
   readResetSwitch,
   readSelectSwitch,
   roomColor,
 } from "./hardware";
-import { GameState, ObjectId, Sound } from "./types";
+import { Difficulty, GameState, ObjectId, Sound } from "./types";
 import {
   castleRoomOffsets,
   entryRoomOffsets,
@@ -350,10 +351,84 @@ function dragonHandleAlive(dragon: OBJECT, matrix: number[], speed: number, time
   return timer;
 }
 
+// Walks the dragon's behavior matrix one entry at a time, stopping
+// at the first entry that produces a target. Difficulty B causes
+// the dragon to flee the sword; difficulty A skips the flee entry
+// and goes straight to seeking.
 function dragonSeekFlee(dragon: OBJECT, matrix: number[], speed: number): void {
-  console.log(dragon);
-  console.log(matrix);
-  console.log(speed);
+  const { right } = readDifficultySwitches();
+  let i = right === Difficulty.B ? 0 : 2;
+
+  do {
+    const target = dragonComputeTarget(dragon, matrix[i + 0], matrix[i + 1]);
+
+    if (target !== null) {
+      dragonApplyMovement(dragon, target, speed);
+      return;
+    }
+  } while (matrix[(i += 2)]);
+}
+
+// Dragon state machine:
+//   0 = stalking (pursuing objects in its matrix, or fleeing the sword)
+//   1 = dead
+//   2 = eating (ball is captured; dragon holds it locked in place)
+//   3 = roaring (brief countdown before the bite; the player can still escape)
+// Resolves a single matrix entry into a seek/flee target for the dragon.
+// Returns null if the entry's object is absent or not in the same room.
+// seekDir: 1 = seeking (move toward), -1 = fleeing (move away).
+function dragonComputeTarget(
+  dragon: OBJECT,
+  fleeObject: number,
+  seekObject: number,
+): { seekDir: number; seekX: number; seekY: number } | null {
+  if (fleeObject > ObjectId.None && objectDefs[fleeObject] !== dragon) {
+    const object = objectDefs[fleeObject];
+
+    if (object.room === dragon.room) {
+      return { seekDir: -1, seekX: object.x, seekY: object.y };
+    }
+  } else {
+    if (seekObject === ObjectId.Ball && objectBall.room === dragon.room) {
+      return { seekDir: 1, seekX: objectBall.x / 2, seekY: objectBall.y / 2 };
+    }
+
+    if (seekObject > ObjectId.None) {
+      const object = objectDefs[seekObject];
+
+      if (object.room === dragon.room) {
+        return { seekDir: 1, seekX: object.x, seekY: object.y };
+      }
+    }
+  }
+
+  return null;
+}
+
+// Sets the dragon's X and Y movement deltas toward or away from a
+// target position. seekDir (from dragonComputeTarget) flips the
+// sign: +1 moves toward, -1 moves away. Movement is axis-aligned:
+// x and y are set independently at the given speed. The vector is
+// applied to the position later by moveGroundObject.
+function dragonApplyMovement(
+  dragon: OBJECT,
+  target: { seekDir: number; seekX: number; seekY: number },
+  speed: number,
+): void {
+  dragon.movementX = 0;
+  dragon.movementY = 0;
+
+  if (dragon.x < target.seekX) {
+    dragon.movementX = target.seekDir * speed;
+  } else if (dragon.x > target.seekX) {
+    dragon.movementX = -(target.seekDir * speed);
+  }
+
+  if (dragon.y < target.seekY) {
+    dragon.movementY = target.seekDir * speed;
+  } else if (dragon.y > target.seekY) {
+    dragon.movementY = -(target.seekDir * speed);
+  }
 }
 
 // Attracts the first eligible object from magnetMatrix toward the
