@@ -40,8 +40,17 @@ import { greenDragonMatrix } from "./data/dragons";
 let switchReset: boolean;
 let switchSelect: boolean;
 let gameState: GameState = GameState.GameSelect;
+
+// This is a state variable, holding the room that is currently
+// being displayed. This is effectively always allowing an
+// answer to the question: "Which room?"
 let displayedRoomIndex: number = 0;
-let displayedListIndex: number = 0;
+
+// This holds the persistent position that carries over between
+// frames to implement the hardware multiplexer. This is always
+// allowing an answer to: "Where are we in the cycle?"
+let displayListCursor: number = 0;
+
 let showObjectFlicker: boolean = true;
 let flashColorHue: number = 0;
 let flashColorLum: number = 0;
@@ -128,7 +137,7 @@ function tickActiveGameState(select: boolean): void {
     } else if (gameState === GameState.Active2) {
       pickupPutdown();
       resolveCollisions();
-      ++displayedListIndex;
+      ++displayListCursor;
       surround();
       moveBat();
       portals();
@@ -1304,7 +1313,7 @@ function drawObjects(room: number): void {
   objectSurround.displayed = false;
 
   let numDisplayed = 0;
-  let i = displayedListIndex;
+  let i = displayListCursor;
 
   while (numDisplayed++ < numAdded && numDisplayed <= MAX_DISPLAY_OBJECTS) {
     if (displayList[i] > ObjectId.None) {
@@ -1410,24 +1419,24 @@ function drawThinWalls(room: number, colorFirst: number, colorLast: number): voi
 // to the end of the list.
 function resolveDisplayList(displayList: number[], numAdded: number): void {
   if (numAdded <= MAX_DISPLAY_OBJECTS) {
-    displayedListIndex = 0;
+    displayListCursor = 0;
   } else {
-    if (displayedListIndex > numAdded) {
-      displayedListIndex = 0;
+    if (displayListCursor > numAdded) {
+      displayListCursor = 0;
     }
 
-    if (displayedListIndex > MAX_OBJECTS) {
-      displayedListIndex = 0;
+    if (displayListCursor > MAX_OBJECTS) {
+      displayListCursor = 0;
     }
 
-    if (displayList[displayedListIndex] === ObjectId.None) {
-      displayedListIndex = 0;
+    if (displayList[displayListCursor] === ObjectId.None) {
+      displayListCursor = 0;
     }
   }
 }
 
 // Separates the "scan what's in this room" step from the draw loop
-// so the multiplexer cursor (displayedListIndex) can be validated
+// so the multiplexer cursor (displayListCursor) can be validated
 // against actual room contents before cycling begins. Surround goes
 // first because it must render beneath the playfield layer; draw
 // order matters here. colorFirst and colorLast capture the colors
