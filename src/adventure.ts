@@ -48,8 +48,13 @@ let flashColorLum: number = 0;
 let gameLevel: number = 0;
 let winFlashTimer: number = 0;
 let flapTimer: number = 0;
-let batFedUpTimer: number = 0xff;
 let greenDragonTimer = 0;
+
+// 0xff = steal immediately; counts up while the bat holds
+// something, resets to 0 on pickup. The inverted sense
+// (high value = hungry) mirrors the original ROM's timer
+// logic.
+let batFedUpTimer: number = 0xff;
 
 // Per-frame entry point, called once per frame by the platform's
 // animation loop. Reads switch state, edge-detects reset (fires
@@ -451,6 +456,12 @@ function batUpdateFlap(bat: OBJECT): void {
   }
 }
 
+// Returns true when the ball is within the bridge's passable zone,
+// which suppresses wall collision so the player can walk through
+// playfield walls at that position. The bridge cannot be used as a
+// passage while it is being carried (linkedObject check). x and y
+// are in ball coordinate space; x/2 converts to object coordinate
+// space for comparison against bridge.x and bridge.y.
 function crossingBridge(room: number, x: number, y: number): boolean {
   const bridge: OBJECT = objectDefs[ObjectId.Bridge];
 
@@ -1005,6 +1016,11 @@ function resolveCollisions(): void {
   }
 }
 
+// Resolves a room connection that may be level-dependent. Most
+// room exits are fixed room numbers, but exits with bit 7 set are
+// indirect: the lower 7 bits are a base index into roomLevelDiffs,
+// and adding gameLevel (0, 1, or 2) selects the actual destination
+// for the current difficulty. Fixed exits pass through unchanged.
 function adjustRoomLevel(room: number): number {
   if (room & 0x80) {
     let newRoomIndex = (room & ~0x80) + gameLevel;
@@ -1015,6 +1031,9 @@ function adjustRoomLevel(room: number): number {
   return room;
 }
 
+// Advances through a sprite's packed data to find the start index
+// and row height for a given animation state. Each state is stored
+// sequentially: one height byte followed by that many row bytes.
 function advanceToState(
   graphicsData: number[],
   stateIndex: number,
@@ -1030,27 +1049,46 @@ function advanceToState(
   return { index, height };
 }
 
+// Folds an x coordinate that has gone past the right edge back to
+// the left side, matching the screen-wrap behavior applied in
+// drawObject and collisionCheckObject.
 function wrapScreenX(x: number): number {
   return x >= SCREEN_WIDTH ? x - SCREEN_WIDTH : x;
 }
 
+// Computes the axis-aligned bounding box of an object in screen
+// coordinates for use in broad-phase collision rejection. Width
+// spans all 8 columns at the object's size scale; height is the
+// active frame's row count doubled (using game→screen coordinate
+// conversion). CLOCKS_HSYNC is subtracted from x to convert from
+// beam-clock space to screen pixel space, matching the adjustment
+// made in drawObject.
 export function calcPlayerSpriteExtents(object: OBJECT): EXTENT {
+  // Calculate the object's size and position.
   let cx = object.x * 2;
   let cy = object.y * 2;
   let size = object.size / 2 + 1;
   let cw = 8 * 2 * size;
+
+  // Look up the index to the current state for this object.
   let stateIndex = object.states[object.state];
 
+  // Get the height, then the data (the first byte of the data
+  // is the height).
   const dataP = object.graphicsData!;
   let i = 0;
   let ch = dataP[i++];
 
+  // Index into the proper state, making sure to skip over the
+  // data.
   for (let x = 0; x < stateIndex; x++) {
     i += ch;
     ch = dataP[i++];
   }
 
   ch *= 2;
+
+  // Adjust for proper position.
   cx -= CLOCKS_HSYNC;
 
   return { x: cx, y: cy, w: cw, h: ch };
