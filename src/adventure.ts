@@ -261,6 +261,9 @@ function tickWinState(reset: boolean, select: boolean): void {
   }
 }
 
+// Per-frame tick for the green dragon. Delegates to moveDragon
+// with this dragon's behaviour matrix and speed, threading the
+// per-dragon timer as return value.
 function moveGreenDragon(): void {
   greenDragonTimer = moveDragon(
     objectDefs[ObjectId.GreenDragon],
@@ -270,6 +273,10 @@ function moveGreenDragon(): void {
   );
 }
 
+// Per-frame dragon state machine dispatcher. Routes to the handler
+// for the current state (stalking, eating, roaring) and threads
+// the timer through as mutable state. Dead dragons (state 1)
+// require no per-frame work.
 function moveDragon(dragon: OBJECT, matrix: number[], speed: number, timer: number): number {
   if (dragon.state === 0) {
     timer = dragonHandleAlive(dragon, matrix, speed, timer);
@@ -480,6 +487,8 @@ function batComputeAxisMovement(batPos: number, seekPos: number): number {
   return 0;
 }
 
+// Toggles the bat between its two wing states (folded/open) every
+// 4 frames, producing the flapping animation.
 function batUpdateFlap(bat: OBJECT): void {
   if (++flapTimer >= 0x04) {
     bat.state = bat.state === 0 ? 1 : 0;
@@ -1410,7 +1419,14 @@ function printDisplay(): void {
   drawObjects(displayedRoom);
 }
 
-// This function holds the frame's actual render pass.
+// The frame's actual render pass. Owns the multiplex loop that
+// cycles displayListCursor across more objects than the hardware
+// could display simultaneously, updates the displayed flag that
+// collision detection reads, and conditionally draws each object.
+// colorLast mutates as objects are drawn and is consumed by
+// drawThinWalls afterward to color the thin wall missile sprites.
+// That shared mutable state is why the loop body resists further
+// extraction.
 function drawObjects(room: number): void {
   const {
     displayList,
@@ -1425,6 +1441,15 @@ function drawObjects(room: number): void {
 
   objectSurround.displayed = false;
 
+  // The multiplexer cycles through at most maxDisplayableObjects
+  // objects per frame, mirroring the Atari 2600's 2-sprite hardware
+  // limit. When more objects are in the room than the hardware
+  // could show, each gets drawn only on some frames, which leads to
+  // the characteristic flicker of the original game. The displayed
+  // flag is updated here regardless of showObjectFlicker because
+  // collision detection depends on it; skipping this loop when
+  // flicker is off would silently break the pickup and enemy
+  // interactions.
   let numDisplayed = 0;
   let i = displayListCursor;
 
@@ -1450,6 +1475,11 @@ function drawObjects(room: number): void {
     }
   }
 
+  // With flicker off, the multiplexer loop above still ran to keep
+  // displayed flags accurate, but only drew up to maxDisplayableObjects
+  // objects. This pass draws everything in the room unconditionally,
+  // which is a quality-of-life departure from the original hardware
+  // that keeps all objects visible at the cost of authenticity.
   if (!showObjectFlicker) {
     for (let i = 0; objectDefs[i].graphicsData; i++) {
       if (objectDefs[i].room === room) {
@@ -1461,25 +1491,69 @@ function drawObjects(room: number): void {
   drawThinWalls(room, colorFirst, colorLast);
 }
 
+// Renders a single object to the canvas at its current position
+// and state. The graphics data format is important here. The
+// graphicsData is a packed array of animation frames. Each frame
+// begins with a height byte (row count), followed by one byte per
+// row where each set bit represents a 2×2 pixel block (and where
+// MSB = leftmost). object.states[object.state] gives the number of
+// frames to skip over in graphicsData to reach the active frame,
+// allowing multiple states to share a frame. A non-zero size field
+// scales each block proportionally.
 function drawObject(object: OBJECT): void {
+  // COLOR_FLASH is a sentinel: resolve it to a live cycling color
+  // rather than a fixed table entry. Called every frame so the
+  // color advances with each draw.
   let color: COLOR = object.color === COLOR_FLASH ? getFlashColor() : colorTable[object.color];
+
+  // Game coordinates are in half-pixel units; multiply by 2 to get
+  // screen pixels.
   let cx = object.x * 2;
   let cy = object.y * 2;
+
+  // The ROM's size field is 0-based in half-unit steps; convert to
+  // a pixel multiplier so that size 0 → 1×1 blocks, size 2 → 2×2
+  // blocks, and so on.
   let size = object.size / 2 + 1;
+
+  // stateIndex is the number of animation frames to skip in the
+  // graphicsData to reach the frame for the current state. The
+  // object.state selects which state (e.g. gate open vs. closed);
+  // object.states[] maps that to a frame offset in the packed data
+  // array.
   let stateIndex = object.states[object.state];
 
+  // dataP is a local alias that lets the non-null assertion be
+  // applied once rather than on every index. i is a byte cursor
+  // into the packed array. The first byte at i=0 is the frame
+  // height (row count); i++ reads it and advances the cursor past
+  // it so the next read lands on the first row's pixel data.
   const dataP = object.graphicsData!;
   let i = 0;
   let objHeight = dataP[i++];
 
+  // Each frame in graphicsData is [heightByte, row0, row1, ..., rowN-1].
+  // To reach the target frame, skip stateIndex complete frames:
+  // advance i by the current frame's row count, then read the
+  // next height byte and repeat.
   for (let x = 0; x < stateIndex; x++) {
     i += objHeight;
     objHeight = dataP[i++];
   }
 
+  // Object coordinates include the TIA beam-clock sync offsets (the
+  // period before the visible scanline begins). Subtracting them
+  // converts to screen pixel coordinates.
   cx -= CLOCKS_HSYNC;
   cy -= CLOCKS_VSYNC;
 
+  // Each row byte is MSB-first: bit 7 is the leftmost block, bit 0
+  // is the rightmost. The (7-bit) inversion maps loop index 0 → leftmost
+  // column. Each set bit paints a block of 2*size × 2 pixels.
+  // x-wrapping handles objects positioned past the right edge, which
+  // the original hardware allowed. Rows are drawn upward (cy decreases)
+  // because the data is stored with the bottom row first, matching
+  // Atari conventions.
   for (let j = 0; j < objHeight; j++) {
     for (let bit = 0; bit < 8; bit++) {
       if (dataP[i] & (1 << (7 - bit))) {
