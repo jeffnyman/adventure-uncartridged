@@ -580,7 +580,13 @@ export const roomBoundsData = [
   ObjectId.None,         0,    0
 ]
 
-// Room differences for different levels (level 1,2,3)
+// Destination rooms for level-dependent exits, organized in groups
+// of 3 (one per game level: 0, 1, 2). A room connection with bit 7
+// set (>= 0x80) is a flag that means "this exit changes with
+// difficulty." The lower 7 bits are the base index into this table;
+// adding gameLevel selects the correct entry within that group.
+// This is what makes the world layout genuinely different between
+// game 1 and games 2/3.
 // prettier-ignore
 export const roomLevelDiffs = [
   0x10,0x0f,0x0f, // down from room 01
@@ -588,7 +594,7 @@ export const roomLevelDiffs = [
   0x1d,0x0a,0x0a, // down from room 03
   0x1c,0x16,0x16, // u/l/r/d from room 1b (black castle room)
   0x1b,0x0c,0x0c, // down from room 1c
-  0x03,0x0c,0x0c // up from room 1d (top entry room)
+  0x03,0x0c,0x0c  // up from room 1d (top entry room)
 ];
 
 // Castle Rooms (Yellow, White, Black)

@@ -977,6 +977,10 @@ export function calcPlayerSpriteExtents(object: OBJECT): EXTENT {
   return { x: cx, y: cy, w: cw, h: ch };
 }
 
+// This is an axis-aligned bounding box test. The y coordinates are
+// bottom-edge origin (y is the top of the rect, y-height is the
+// bottom), matching the Atari coordinate system where sprites are
+// drawn upward from their specified position.
 export function hitTestRects(
   ax: number,
   ay: number,

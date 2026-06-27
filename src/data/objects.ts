@@ -563,6 +563,12 @@ export const objectDefs: OBJECT[] = [
   }, // # Null
 ];
 
+// The ball (the player's avatar in the original 2600, which used
+// the hardware Ball sprite for the player). Ball positions are
+// stored at 2× resolution relative to all other game objects.
+// objectBall.x == 100 is object coordinate 50. This double scale
+// is the source of every /2 and *2 conversion throughout the main
+// adventure module.
 export const objectBall: BALL = {
   room: 0,
   x: 0,

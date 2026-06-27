@@ -1,3 +1,9 @@
+// COLOR_FLASH is a Sentinel, not a fixed color. Objects with this
+// value call getFlashColor() at draw time instead of looking up
+// colorTable. The Chalice and Author text carry it permanently;
+// the win condition applies it to the room background via a
+// separate path.
+
 export const COLOR_BLACK = 0;
 export const COLOR_LTGRAY = 1;
 export const COLOR_WHITE = 2;
