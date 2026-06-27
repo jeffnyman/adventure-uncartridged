@@ -99,7 +99,7 @@ export function startGame(): void {
 // Runs each frame during active gameplay. Checks win condition and
 // select-release exit first, then dispatches to one of the three
 // sub-frames (Active1/2/3) that divide per-frame work across
-// consecutive ticks,  mirroring how the original 2600 ROM spread
+// consecutive ticks, mirroring how the original 2600 ROM spread
 // computation across TV scan lines to stay within its CPU budget.
 function tickActiveGameState(select: boolean): void {
   if (objectDefs[ObjectId.Chalice].room === 0x12) {
@@ -349,6 +349,12 @@ function dragonSeekFlee(dragon: OBJECT, matrix: number[], speed: number): void {
   console.log(speed);
 }
 
+// Attracts the first eligible object from magnetMatrix toward the
+// magnet each frame, moving it one pixel per axis. Objects carried
+// by the player are skipped. The vertical target is offset by the
+// magnet's height so attracted objects stack against its bottom
+// edge rather than its center. Only one object is attracted per
+// frame.
 function magnet(): void {
   const magnet: OBJECT = objectDefs[ObjectId.Magnet];
   let i = 0;
@@ -383,6 +389,11 @@ function magnet(): void {
   }
 }
 
+// Drives bat behavior each frame: updates the wing animation, then
+// increments batFedUpTimer while carrying something, and triggers
+// batSeekAndPickUp once the timer reaches 0xFF. The timer acts as
+// a patience counter in that the bat holds an object for a fixed
+// duration before seeking to swap it for something else.
 function moveBat(): void {
   const bat: OBJECT = objectDefs[ObjectId.Bat];
 
@@ -397,6 +408,9 @@ function moveBat(): void {
   }
 
   if (batFedUpTimer >= 0xff) {
+    // Enlarge the bat extent by 7 pixels for proximity checks. The
+    // idea is that expanding the bat once is faster than expanding
+    // each candidate object.
     const batExtent = calcPlayerSpriteExtents(bat);
 
     batExtent.x -= 7;
@@ -408,6 +422,11 @@ function moveBat(): void {
   }
 }
 
+// Walks batMatrix to find the first object in the same room as the
+// bat that it is not already carrying, steers toward it, and picks
+// it up on contact, stealing it from the player if necessary. Only
+// the first eligible matrix entry is acted on; later entries are
+// ignored until the next seek cycle.
 function batSeekAndPickUp(bat: OBJECT, batExtent: EXTENT): void {
   let i = 0;
 
@@ -446,6 +465,9 @@ function batSeekAndPickUp(bat: OBJECT, batExtent: EXTENT): void {
   } while (batMatrix[++i]);
 }
 
+// Returns the bat's movement delta on a single axis toward a seek
+// target: +3 if behind, -3 if ahead, 0 if aligned. This is applied
+// independently to X and Y.
 function batComputeAxisMovement(batPos: number, seekPos: number): number {
   if (batPos < seekPos) {
     return 3;
@@ -489,6 +511,12 @@ function crossingBridge(room: number, x: number, y: number): boolean {
   return false;
 }
 
+// Handles the fire button: drops the currently carried object if
+// one is held, or scans for a touchable object to pick up. The
+// scan starts at ObjectId.Sword to skip non-carryable objects
+// (portcullises, Name, Number). If the first hit is the
+// already-carried object, the scan resumes from the next index
+// to find another.
 function pickupPutdown(): void {
   if (joystick.fire && objectBall.linkedObject >= 0) {
     // Put down the current object.
@@ -519,6 +547,10 @@ function pickupPutdown(): void {
   }
 }
 
+// Keeps the carried object's position locked to the ball by
+// applying the stored XY offset, then calls moveGroundObject,
+// mirroring the original ROM where ground-object movement was
+// handled in the same subroutine as the carried-object update.
 function moveCarriedObject(): void {
   if (objectBall.linkedObject >= 0) {
     let object: OBJECT = objectDefs[objectBall.linkedObject];
@@ -528,12 +560,15 @@ function moveCarriedObject(): void {
     object.room = objectBall.room;
   }
 
-  // Called here to mirror the original 2600 ROM, which processed
-  // the ground-object movement in the same subroutine as the
-  // carried-object update.
   moveGroundObject();
 }
 
+// Drives all autonomous object movement for one frame: checks
+// portal entry for the ball, then advances every object from
+// RedDragon onward by its movement vector and then calls
+// moveGroundObjectAcrossRooms for room transitions. This also
+// propagates position to any object being carried (linked) by
+// a moving object.
 function moveGroundObject(): void {
   // Handle ball going into the castles. The idea is to try each
   // portal in order, stopping at first match.
@@ -561,6 +596,10 @@ function moveGroundObject(): void {
   }
 }
 
+// Checks all four edges and transitions the object to the adjacent
+// room when it crosses a boundary. Bottom-edge transitions are
+// delegated to groundObjectHandleDownWrap because castle entry
+// rooms need special handling on that axis only.
 function moveGroundObjectAcrossRooms(object: OBJECT): void {
   if (object.y > 0x6a) {
     object.y = 0x0d;
@@ -582,6 +621,10 @@ function moveGroundObjectAcrossRooms(object: OBJECT): void {
   }
 }
 
+// Handles a ground object crossing the bottom edge of a room.
+// Objects in a castle entry room are redirected into the
+// corresponding castle interior; all others transition normally
+// to roomDown.
 function groundObjectHandleDownWrap(object: OBJECT): void {
   for (const portId of [ObjectId.Port1, ObjectId.Port2, ObjectId.Port3]) {
     if (object.room === entryRoomOffsets[portId]) {
@@ -605,6 +648,11 @@ function portals(): void {
   tickPortal(ObjectId.Port3, objectDefs[ObjectId.Port3], objectDefs[ObjectId.BlackKey]);
 }
 
+// Tests whether the ball is touching a portcullis that is not fully
+// closed (state 0x0C). If so, moves the ball into the castle entry
+// room and resets the portcullis to open so the player can exit
+// again. Returns true so moveGroundObject can stop checking further
+// portals once a match is found.
 function checkPortalEntry(portId: number, port: OBJECT): boolean {
   if (
     objectBall.room === port.room &&
@@ -625,7 +673,13 @@ function checkPortalEntry(portId: number, port: OBJECT): boolean {
   return false;
 }
 
+// Positions the surround object beneath the ball when in a gray
+// (maze) room. The surround is an oversized sprite that fills the
+// playfield area, preventing the ball's color from bleeding into
+// wall cells. In non-gray rooms it is hidden by moving it to
+// room -1.
 function surround(): void {
+  // Get the playfield data.
   const currentRoom: ROOM = roomDefs[objectBall.room];
 
   if (currentRoom.color === COLOR_LTGRAY) {
@@ -639,6 +693,14 @@ function surround(): void {
   }
 }
 
+// Reads joystick input and moves the ball, then checks room
+// transitions and collisions on each axis independently. Here
+// tempX and tempY capture positions before each axis moves so
+// the collision checks can test the previous perpendicular
+// position (isolating which axis caused a hit). When eaten by
+// a dragon, movement input is still read but room-wrap and
+// collision are suppressed: hitX and hitY are forced true to
+// keep the ball locked in place.
 function ballMovement(): void {
   const tempX = objectBall.x;
   const tempY = objectBall.y;
@@ -673,6 +735,10 @@ function ballMovement(): void {
   }
 }
 
+// Teleports the ball to the fixed spawn point inside a castle when
+// the player walks through the bottom of a castle entry room. The
+// portId selects which castle; the destination room is resolved
+// through adjustRoomLevel to handle level-dependent castle layouts.
 function ballEnterCastle(portId: number): void {
   objectBall.x = 0xa0;
   objectBall.y = 0x2c * 2;
@@ -681,6 +747,10 @@ function ballEnterCastle(portId: number): void {
   objectBall.room = adjustRoomLevel(castleRoomOffsets[portId]);
 }
 
+// Handles the ball crossing the left or right edge of a room.
+// Room 0x3 (Left of Name) has a hardcoded right-exit to room 0x1E
+// (the easter egg name room) which is not reachable through the
+// normal room connection map.
 function ballHandleXRoomWrap(): void {
   if (objectBall.x >= SCREEN_WIDTH - 4) {
     objectBall.x = 5;
@@ -692,6 +762,14 @@ function ballHandleXRoomWrap(): void {
   }
 }
 
+// Handles the ball crossing the top or bottom edge of a room.
+// Moving off the top transitions to roomUp. Moving off the
+// bottom normally transitions to roomDown, but the three castle
+// entry rooms instead teleport the ball inside via ballEnterCastle.
+// Before committing a bottom transition, the destination room is
+// collision-tested at the new Y; if blocked, hitY is set and the
+// room stays the same. tempX is the ball's previous X position,
+// used for that destination collision test.
 function ballHandleYRoomWrap(tempX: number): void {
   if (objectBall.y > OVERSCAN + SCREEN_HEIGHT + 6) {
     objectBall.y = OVERSCAN + OVERSCAN - 2;
@@ -719,6 +797,11 @@ function ballHandleYRoomWrap(tempX: number): void {
   }
 }
 
+// Tests whether the ball's new X position causes a collision. Here
+// tempY is the ball's previous Y position, tested at (newX, tempY)
+// to isolate whether the X movement specifically caused the hit.
+// Unlike the Y check there is no bridge exception here; the bridge
+// only suppresses wall collision on the vertical axis.
 function ballCheckXCollision(tempY: number): void {
   const hitObject = collisionCheckBallWithObjects(0);
   const hitWall = collisionCheckBallWithWalls(objectBall.room, objectBall.x, tempY);
@@ -729,6 +812,12 @@ function ballCheckXCollision(tempY: number): void {
   }
 }
 
+// Tests whether the ball's new Y position causes a collision. Here
+// tempX is the ball's previous X position, tested at (tempX, newY)
+// to isolate whether the Y movement specifically caused the hit.
+// Wall collision is suppressed when the ball is crossing the
+// bridge, allowing passage through playfield walls at that
+// location.
 function ballCheckYCollision(tempX: number): void {
   const hitObject = collisionCheckBallWithObjects(0);
   const onBridge = crossingBridge(objectBall.room, tempX, objectBall.y);
@@ -922,14 +1011,25 @@ export function collisionCheckObjectWithObject(object1: OBJECT, object2: OBJECT)
   return false;
 }
 
+// Tests the ball against all wall geometry in the room: thin wall
+// barriers first, then every set bit in the playfield bitmask.
+// Both the left half and the mirrored or repeated right half are
+// checked. Returns true on the first hit found.
 function collisionCheckBallWithWalls(room: number, x: number, y: number): boolean {
   let hitWall = false;
 
+  // Playfield graphics are drawn offset into the overscan area;
+  // shift y to match.
   y -= 30;
 
+  // Get the playfield data.
   const currentRoom: ROOM = roomDefs[room];
   const roomData = currentRoom.graphicsData;
+
+  // Get the playfield mirror flag.
   const mirror = currentRoom.flags & ROOMFLAG_MIRROR;
+
+  // Each cell is 8 x 32.
   const cell_width = 8;
   const cell_height = 32;
 
@@ -938,11 +1038,15 @@ function collisionCheckBallWithWalls(room: number, x: number, y: number): boolea
   }
 
   if (currentRoom.flags & ROOMFLAG_RIGHTTHINWALL && x + 4 > 0x96 * 2) {
+    // If the dot is in this room, allow passage through the wall
+    // into the Easter Egg room.
     if (objectDefs[ObjectId.Dot].room !== room) {
       hitWall = true;
     }
   }
 
+  // Check each bit of the playfield data to see if they intersect
+  // the ball.
   setPlayfieldBit(roomData, (cx, ypos) => {
     if (
       hitTestRects(x - 4, y - 4, 8, 8, cx * cell_width, ypos * cell_height, cell_width, cell_height)
@@ -989,8 +1093,17 @@ function collisionCheckBallWithWalls(room: number, x: number, y: number): boolea
   return hitWall;
 }
 
+// Applies collision results that are set by two core functions:
+// ballCheckXCollision and ballCheckYCollision. Each axis is handled
+// independently: if a hit was recorded, the ball is pushed back to
+// its previous position on that axis. When the ball is carrying an
+// object, the carried object's offset is adjusted by the same delta
+// so it stays in the player's hand rather than teleporting. The
+// no-hit branch also runs a carry check to keep a held object from
+// drifting out of alignment when no wall was struck.
 function resolveCollisions(): void {
   if (!objectBall.hitX && !objectBall.hitY) {
+    // Make sure stuff the player is carrying stays out of the way.
     let hitObject = collisionCheckBallWithObjects(0);
 
     if (hitObject > ObjectId.None && hitObject === objectBall.linkedObject) {
