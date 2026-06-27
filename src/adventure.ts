@@ -785,6 +785,17 @@ function surround(): void {
   }
 }
 
+// Returns true if any dragon is currently holding the ball (player
+// is captured). Used to suppress ball movement and collision while
+// eaten.
+function ballIsEaten(): boolean {
+  return (
+    objectDefs[ObjectId.YellowDragon].linkedObject === ObjectId.Ball ||
+    objectDefs[ObjectId.GreenDragon].linkedObject === ObjectId.Ball ||
+    objectDefs[ObjectId.RedDragon].linkedObject === ObjectId.Ball
+  );
+}
+
 // Reads joystick input and moves the ball, then checks room
 // transitions and collisions on each axis independently. Here
 // tempX and tempY capture positions before each axis moves so
@@ -797,8 +808,7 @@ function ballMovement(): void {
   const tempX = objectBall.x;
   const tempY = objectBall.y;
 
-  // NOTE: This will need to be programmatic.
-  const eaten: boolean = false;
+  const eaten: boolean = ballIsEaten();
 
   objectBall.previousY = objectBall.y;
   objectBall.hitObject = ObjectId.None;
