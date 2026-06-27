@@ -1,5 +1,3 @@
-// Game logic.
-
 import {
   paintPixel,
   playSound,
@@ -53,10 +51,19 @@ let flapTimer: number = 0;
 let batFedUpTimer: number = 0xff;
 let greenDragonTimer = 0;
 
+// Per-frame entry point, called once per frame by the platform's
+// animation loop. Reads switch state, edge-detects reset (fires
+// on release, matching Atari 2600 hardware behavior), and routes
+// to the appropriate tick function for the current game state.
+// Switch states are saved at the end so the next frame's edge
+// detectors can compare against them.
 export function startGame(): void {
   const reset = readResetSwitch();
   const select = readSelectSwitch();
 
+  // Edge-detect the reset switch: fires only on the transition
+  // from pressed to released, matching the Atari 2600 hardware
+  // behavior. The Win state ignores reset entirely.
   if (gameState !== GameState.Win && switchReset && !reset) {
     tickResetState();
   } else if (gameState === GameState.GameSelect) {
@@ -67,12 +74,19 @@ export function startGame(): void {
     tickWinState(reset, select);
   }
 
+  // Save switch states so the edge detectors above can compare
+  // against the next frame.
   switchReset = reset;
   switchSelect = select;
 
   advanceFlashColor();
 }
 
+// Runs each frame during active gameplay. Checks win condition and
+// select-release exit first, then dispatches to one of the three
+// sub-frames (Active1/2/3) that divide per-frame work across
+// consecutive ticks,  mirroring how the original 2600 ROM spread
+// computation across TV scan lines to stay within its CPU budget.
 function tickActiveGameState(select: boolean): void {
   if (objectDefs[ObjectId.Chalice].room === 0x12) {
     // Win condition: the chalice is returned to the yellow
@@ -81,7 +95,8 @@ function tickActiveGameState(select: boolean): void {
     winFlashTimer = 0xff;
     playSound(Sound.Won);
   } else if (switchSelect && !select) {
-    // Select was released mid-game.
+    // Select was released mid-game, which triggers a return to
+    // the level selection screen.
     gameState = GameState.GameSelect;
 
     objectBall.room = 0;
@@ -94,7 +109,12 @@ function tickActiveGameState(select: boolean): void {
     printDisplay();
   } else {
     readJoystick(joystick);
-    // Core level logic.
+
+    // Core level logic. The active game loop is spread across three
+    // consecutive frames (Active1 → Active2 → Active3 → Active1),
+    // mirroring how the original 2600 cartridge divided work across
+    // television scan lines to stay within the CPU budget of a
+    // single frame.
     if (gameState === GameState.Active1) {
       ballMovement();
       moveCarriedObject();
@@ -147,7 +167,12 @@ function tickPortal(portId: number, port: OBJECT, key: OBJECT): void {
   }
 }
 
+// Repositions the ball in the yellow castle and either performs a
+// full level initialization (when coming from the selection screen)
+// or revives all three dragons mid-game without disturbing object
+// positions. A reset always transitions to Active1.
 function tickResetState(): void {
+  // Put the player in the initial yellow castle room.
   objectBall.room = 0x11;
   objectBall.x = 0x50 * 2;
   objectBall.y = 0x20 * 2;
@@ -156,6 +181,8 @@ function tickResetState(): void {
   objectBall.linkedObject = ObjectId.None;
 
   displayedRoomIndex = objectBall.room;
+
+  // Make the bat want to steal something immediately.
   batFedUpTimer = 0xff;
 
   if (gameState === GameState.GameSelect) {
@@ -177,9 +204,14 @@ function tickResetState(): void {
   gameState = GameState.Active1;
 }
 
+// Runs each frame while the level-selection screen is displayed.
+// Advances gameLevel on select-release (cycling 0→1→2→0) and keeps
+// the Number object's state in sync so that the displayed digit
+// matches the chosen level.
 function tickSelectState(select: boolean): void {
   objectDefs[ObjectId.Number].state = gameLevel;
 
+  // Edge-detection: advance level only on select release.
   if (switchSelect && !select) {
     ++gameLevel;
 
@@ -197,6 +229,10 @@ function tickSelectState(select: boolean): void {
   printDisplay();
 }
 
+// Runs each frame after the chalice reaches the yellow castle.
+// Counts down winFlashTimer (which drives the room background
+// flash in printDisplay) and exits back to level selection when
+// either switch is released.
 function tickWinState(reset: boolean, select: boolean): void {
   if (winFlashTimer > 0) {
     --winFlashTimer;
@@ -540,6 +576,9 @@ function groundObjectHandleDownWrap(object: OBJECT): void {
   object.room = adjustRoomLevel(roomDefs[object.room].roomDown);
 }
 
+// Ticks all three portcullises against their matching keys each
+// frame. Each runs independently; see tickPortal for the state
+// machine.
 function portals(): void {
   tickPortal(ObjectId.Port1, objectDefs[ObjectId.Port1], objectDefs[ObjectId.YellowKey]);
   tickPortal(ObjectId.Port2, objectDefs[ObjectId.Port2], objectDefs[ObjectId.WhiteKey]);
@@ -683,6 +722,14 @@ function ballCheckYCollision(tempX: number): void {
   }
 }
 
+// Tests an object's sprite blocks against an arbitrary rectangle.
+// On the original hardware this was handled by TIA Player/Missile
+// collision registers; here it is done explicitly per 2×2 block.
+// Follows the same data traversal as drawObject: advance to the
+// active animation frame, then scan rows upward (where objectY
+// decreases), testing each set bit MSB-first against the target
+// rect. x-wrapping is applied to blocks near the right edge,
+// matching drawObject's rendering behavior.
 export function collisionCheckObject(
   object: OBJECT,
   x: number,
@@ -731,6 +778,14 @@ export function collisionCheckObject(
   return false;
 }
 
+// Scans objectDefs from startIndex for the first object that
+// overlaps the ball, returning its index or ObjectId.None. The
+// startIndex lets callers skip non-carryable objects (pass
+// ObjectId.Sword to start at the first pickup-eligible object) or
+// resume past a known hit (pass hitIndex + 1) to find a second
+// overlapping object. Only objects with displayed == true are
+// tested, which matches the original hardware where only rendered
+// sprites could trigger TIA collision registers.
 function collisionCheckBallWithObjects(startIndex: number): number {
   for (let i = startIndex; objectDefs[i].graphicsData; i++) {
     const object: OBJECT = objectDefs[i];
@@ -745,7 +800,27 @@ function collisionCheckBallWithObjects(startIndex: number): number {
   return ObjectId.None;
 }
 
+// Collision check two objects at the pixel level. On the 2600, this
+// is done in hardware by the Player/Missile collision registers.
+//
+// There is a four-level nested scan here:
+//   (obj1 rows → obj1 bits → obj2 rows → obj2 bits)
+// That is a direct translation of per-pixel hardware collision and
+// cannot be split further without either returning mutable Y-state
+// across calls or altering the original's behavior: objectY2
+// intentionally does not reset between bit1 iterations within a
+// row.
+//
+// What this enables is pixel-accurate collision test between two
+// game objects and how that plays out is primarily with dragon/bat
+// interactions: detecting when a dragon touches the sword, or when
+// the bat overlaps a carriable object. There's two-phases: a
+// bounding box rejection first to avoid the expensive per-block
+// test, then a block-by-block overlap check that accounts for
+// x-wrapping on objects positioned near the screen edges.
 export function collisionCheckObjectWithObject(object1: OBJECT, object2: OBJECT): boolean {
+  // Trivial rejection: this is a guard for different rooms or for
+  // non-overlapping bounding boxes.
   if (object1.room !== object2.room) {
     return false;
   }
@@ -768,6 +843,7 @@ export function collisionCheckObjectWithObject(object1: OBJECT, object2: OBJECT)
     return false;
   }
 
+  // Object extents overlap: go pixel by pixel.
   const objectX1 = object1.x - CLOCKS_HSYNC;
   let objectY1 = object1.y;
   const objectSize1 = object1.size / 2 + 1;
@@ -780,13 +856,16 @@ export function collisionCheckObjectWithObject(object1: OBJECT, object2: OBJECT)
   const s2 = advanceToState(object2.graphicsData!, object2.states[object2.state]);
 
   for (let i = 0; i < s1.height; i++) {
+    // Parse the object1 row. Each bit is a 2×2 block.
     const rowByte1 = object1.graphicsData![s1.index + i];
 
     for (let bit1 = 0; bit1 < 8; bit1++) {
       if (rowByte1 & (1 << (7 - bit1))) {
+        // Test this pixel of object1 against every pixel of object2.
         let i2 = s2.index;
 
         for (let j = 0; j < s2.height; j++) {
+          // Parse the object2 row. Each bit is a 2×2 block.
           const rowByte2 = object2.graphicsData![i2];
 
           for (let bit2 = 0; bit2 < 8; bit2++) {
@@ -1000,7 +1079,13 @@ export function hitTestRects(
   return intersects;
 }
 
+// Initializes all game objects for the selected difficulty. Clears
+// movement and links for every object, then applies the starting
+// positions from the level table (game1Objects for level 1 and
+// game2Objects for levels 2 and 3). Level 3 additionally randomizes
+// each object's room within the bounds defined in roomBoundsData.
 function setupRoomObjects(): void {
+  // First, initialize all game objects.
   for (let i = 0; objectDefs[i].graphicsData; i++) {
     let object: OBJECT = objectDefs[i];
 
@@ -1009,6 +1094,8 @@ function setupRoomObjects(): void {
     object.linkedObject = ObjectId.None;
   }
 
+  // Second, read the object initialization table for the current
+  // game level.
   const p: number[] = gameLevel === 0 ? game1Objects : game2Objects;
   let i = 0;
 
@@ -1029,6 +1116,7 @@ function setupRoomObjects(): void {
     objectDefs[object].movementY = movementY;
   }
 
+  // Put objects in random rooms for level 3.
   if (gameLevel === 2) {
     const boundsData: number[] = roomBoundsData;
 
@@ -1038,6 +1126,7 @@ function setupRoomObjects(): void {
     let upper = boundsData[i++];
 
     do {
+      // Pick a room between upper and lower bounds (inclusive).
       while (true) {
         let room = Math.floor(random()) * 0x1f;
 
@@ -1054,6 +1143,9 @@ function setupRoomObjects(): void {
   }
 }
 
+// Convenience predicate used by startGame to route ticks away from
+// the GameSelect and Win states without enumerating every Active
+// sub-state explicitly.
 function isGameActive(): boolean {
   return (
     gameState === GameState.Active1 ||
@@ -1062,10 +1154,23 @@ function isGameActive(): boolean {
   );
 }
 
+// Renders a complete frame. This means a lot of things. It clears
+// the background, draws the surround object if active, paints all
+// playfield cells for the displayed room, draws the ball, then
+// draws all objects via the multiplex loop. The displayedRoomIndex
+// may differ from objectBall.room during room transitions, which
+// allows the incoming room to be shown before the ball's room
+// field updates.
 function printDisplay(): void {
+  // First, get the playfield data.
   let displayedRoom = displayedRoomIndex;
   const currentRoom: ROOM = roomDefs[displayedRoom];
   const roomData = currentRoom.graphicsData;
+
+  // Win condition flashes the entire room background until the
+  // winFlashTimer expires. Uses the same getFlashColor() as
+  // COLOR_FLASH objects, but applied to the room rather than to
+  // a specific object.
   let colorBackground: COLOR = colorTable[COLOR_LTGRAY];
   let color: COLOR =
     gameState === GameState.Win && winFlashTimer > 0
@@ -1092,8 +1197,11 @@ function printDisplay(): void {
     drawObject(objectSurround);
   }
 
+  // Get the playfield mirror flag.
   let mirror = currentRoom.flags & ROOMFLAG_MIRROR;
 
+  // Each cell is 8 x 32 and this is what draws the actual
+  // playfield.
   const cell_width = 8;
   const cell_height = 32;
 
@@ -1131,12 +1239,14 @@ function printDisplay(): void {
     }
   });
 
+  // This is where the ball object is drawn.
   let x = (objectBall.x - 4) & ~0x00000001;
   let y = (objectBall.y - 10) & ~0x00000001;
 
   color = colorTable[roomDefs[displayedRoomIndex].color];
   paintPixel(color.r, color.g, color.b, x, y, 8, 8);
 
+  // Finally, any objects in the room can be drawn.
   drawObjects(displayedRoom);
 }
 
