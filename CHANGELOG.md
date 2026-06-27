@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.0](https://github.com/jeffnyman/adventure-uncartridged/compare/0.2.0...1.0.0) (2026-06-27)
+
+### Features
+
+- player can engage with dragons ([b34627a](https://github.com/jeffnyman/adventure-uncartridged/commit/b34627a255ff075de7a3fc0142906f91319d8eef))
+- player can hear sounds ([f172de4](https://github.com/jeffnyman/adventure-uncartridged/commit/f172de4703e09a1a4620a8c8796c5dc631d97652))
+- player can navigate in dark mazes ([bb3c68f](https://github.com/jeffnyman/adventure-uncartridged/commit/bb3c68f1e4e0e5e7d55885254c55431545a3cf06))
+- player can open castle portals ([b8fcc7f](https://github.com/jeffnyman/adventure-uncartridged/commit/b8fcc7fd4443e3c37eb338f582c65daf419986c2))
+- player can toggle fullscreen ([ac10cb6](https://github.com/jeffnyman/adventure-uncartridged/commit/ac10cb615d5abc2d5a236f3cb901eef4609bdf8c))
+- player can toggle switches ([7e567bc](https://github.com/jeffnyman/adventure-uncartridged/commit/7e567bcbdbe8735385c59a97dedccfdc1b9256b2))
+- player can use the magnet ([eb94076](https://github.com/jeffnyman/adventure-uncartridged/commit/eb9407667afbdf9a548f3edba25a63317fd5c4a0))
+- player can win the game ([08dbd31](https://github.com/jeffnyman/adventure-uncartridged/commit/08dbd317feedea7489d7fa38f37b296a9bf081de))
+
 ## [0.2.0](https://github.com/jeffnyman/adventure-uncartridged/compare/0.1.0...0.2.0) (2026-06-25)
 
 ### Features
