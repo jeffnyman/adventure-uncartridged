@@ -36,7 +36,7 @@ import { game1Objects, game2Objects, objectBall, objectDefs, objectSurround } fr
 import { joystick } from "./data/action";
 import { batMatrix } from "./data/bats";
 import { magnetMatrix } from "./data/magnets";
-import { dragonDiff, greenDragonMatrix } from "./data/dragons";
+import { dragonDiff, greenDragonMatrix, redDragonMatrix, yellowDragonMatrix } from "./data/dragons";
 
 let switchReset: boolean;
 let switchSelect: boolean;
@@ -58,7 +58,9 @@ let flashColorLum: number = 0;
 let gameLevel: number = 0;
 let winFlashTimer: number = 0;
 let flapTimer: number = 0;
-let greenDragonTimer = 0;
+let greenDragonTimer: number = 0;
+let yellowDragonTimer: number = 0;
+let redDragonTimer: number = 0;
 
 // 0xff = steal immediately; counts up while the bat holds
 // something, resets to 0 on pickup. The inverted sense
@@ -146,6 +148,8 @@ function tickActiveGameState(select: boolean): void {
       ++gameState;
     } else if (gameState === GameState.Active3) {
       moveGreenDragon();
+      moveYellowDragon();
+      moveRedDragon();
       magnet();
       printDisplay();
       gameState = GameState.Active1;
@@ -263,7 +267,7 @@ function tickWinState(reset: boolean, select: boolean): void {
 }
 
 // Per-frame tick for the green dragon. Delegates to moveDragon
-// with this dragon's behaviour matrix and speed, threading the
+// with this dragon's behavior matrix and speed, threading the
 // per-dragon timer as return value.
 function moveGreenDragon(): void {
   greenDragonTimer = moveDragon(
@@ -272,6 +276,25 @@ function moveGreenDragon(): void {
     2,
     greenDragonTimer,
   );
+}
+
+// Per-frame tick for the yellow dragon. Delegates to moveDragon
+// with this dragon's behavior matrix and speed, threading the
+// per-dragon timer as return value.
+function moveYellowDragon(): void {
+  yellowDragonTimer = moveDragon(
+    objectDefs[ObjectId.YellowDragon],
+    yellowDragonMatrix,
+    2,
+    yellowDragonTimer,
+  );
+}
+
+// Per-frame tick for the red dragon. Delegates to moveDragon
+// with this dragon's behavior matrix and speed, threading the
+// per-dragon timer as return value.
+function moveRedDragon(): void {
+  redDragonTimer = moveDragon(objectDefs[ObjectId.RedDragon], redDragonMatrix, 3, redDragonTimer);
 }
 
 // Per-frame dragon state machine dispatcher. Routes to the handler
