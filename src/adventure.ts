@@ -1224,6 +1224,13 @@ function drawObject(object: OBJECT): void {
   }
 }
 
+// Some rooms have thin vertical barriers that the playfield bitmask
+// can't represent precisely enough. The original hardware used the
+// missile sprites for these. This function paints them after the
+// object pass so they layer correctly; if objects were drawn it
+// inherits their colors (colorFirst for the left wall, colorLast
+// for the right) to match the hardware's missile-sprite color
+// behavior. If no objects were drawn, walls are black.
 function drawThinWalls(room: number, colorFirst: number, colorLast: number): void {
   if (roomDefs[room].flags & ROOMFLAG_LEFTTHINWALL) {
     const color: COLOR = colorTable[colorFirst > 0 ? colorFirst : COLOR_BLACK];
@@ -1233,10 +1240,22 @@ function drawThinWalls(room: number, colorFirst: number, colorLast: number): voi
 
   if (roomDefs[room].flags & ROOMFLAG_RIGHTTHINWALL) {
     const color: COLOR = colorTable[colorFirst > 0 ? colorLast : COLOR_BLACK];
+
     paintPixel(color.r, color.g, color.b, 0x96 * 2, 0x00, 4, SCREEN_HEIGHT);
   }
 }
 
+// The Atari 2600 could only render two sprites per frame. When a
+// room holds more objects than that, the draw loop cycles through
+// them across frames. This was the source of Adventure's
+// characteristic flicker. The displayListIndex is the persistent
+// cursor for that cycle; this function exists to establish a valid
+// starting position before each frame's draw pass. If the room fits
+// within the hardware limit there is nothing to cycle, so reset to
+// 0. The three guards catch a stale index: it could be past the
+// current room's object count (different room, smaller list), past
+// MAX_OBJECTS, or at a None sentinel from a prior cycle that ran
+// to the end of the list.
 function resolveDisplayList(displayList: number[], numAdded: number): void {
   if (numAdded <= MAX_DISPLAY_OBJECTS) {
     displayedListIndex = 0;
@@ -1255,6 +1274,16 @@ function resolveDisplayList(displayList: number[], numAdded: number): void {
   }
 }
 
+// Separates the "scan what's in this room" step from the draw loop
+// so the multiplexer cursor (displayedListIndex) can be validated
+// against actual room contents before cycling begins. Surround goes
+// first because it must render beneath the playfield layer; draw
+// order matters here. colorFirst and colorLast capture the colors
+// of the first and last real objects: drawThinWalls uses them
+// because missile sprites inherit color from the nearest rendered
+// player sprite (an Atari hardware constraint). The value of the
+// displayed member is reset here so that stale collisions state
+//  from the previous frame is cleared before drawing starts.
 function buildRoomDisplayList(room: number): {
   displayList: number[];
   numAdded: number;
@@ -1301,6 +1330,13 @@ function buildRoomDisplayList(room: number): {
 //
 // PF0 uses only its high nibble (bits 4–7) and is read LSB→MSB;
 // PF1 is read MSB→LSB; PF2 reverses back to LSB→MSB.
+//
+// The three-way branch inside (pf0/pf1/pf2 selection by cx) is a
+// direct expression of the Atari hardware encoding. Each register
+// covers a distinct column range with its own bit ordering. There
+// is no abstraction that makes this genuinely simpler: a lookup
+// table carries the same decisions at init time and obscures the
+// direct correspondence to the hardware spec.
 export function setPlayfieldBit(
   roomData: number[],
   callback: (cx: number, ypos: number) => boolean | void,
@@ -1328,6 +1364,11 @@ export function setPlayfieldBit(
   }
 }
 
+// Advances the flash color state once per game tick. The hue
+// cycles 360° in steps of 2, luminance pulses 0→200 in steps
+// of 11 then resets. Called from startGame so that all of the
+// COLOR_FLASH consumers see the same color value within a
+// single frame.
 function advanceFlashColor(): void {
   flashColorHue += 2;
 
@@ -1342,6 +1383,13 @@ function advanceFlashColor(): void {
   }
 }
 
+// Generates a rainbow-shimmer color by cycling hue through three
+// RGB segments (blue→red→green→blue) and independently pulsing
+// luminance from 0 to 200. This is called every frame for the
+// COLOR_FLASH objects and during the win screen. The hue and
+// luminance are advanced by AdvanceFlashColor() once per game
+// tick, not per call, so that all flash consumers see the same
+// color within a single frame.
 function getFlashColor(): COLOR {
   let r = 0,
     g = 0,

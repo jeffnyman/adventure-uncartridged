@@ -26,6 +26,8 @@ let keyFire: boolean = false;
 let lastColor: COLOR = { r: 0, g: 0, b: 0 };
 let colorChangeCallback: (color: COLOR) => void;
 
+// Difficulty B (the amateur setting) was the hardware default on
+// the original 2600.
 let difficultyLeft: Difficulty = Difficulty.B;
 let difficultyRight: Difficulty = Difficulty.B;
 
@@ -49,6 +51,7 @@ export function run(tick: () => void, onColorChange: (color: COLOR) => void): vo
   ctx.transform(1, 0, 0, -1, 0, canvas.height);
 
   // SETUP: GAME ACTIONS
+
   setupKeyHandlers();
 
   // SETUP: GAME INTERFACE
@@ -82,6 +85,9 @@ export function playSound(sound: Sound): void {
       void soundEaten.play();
       break;
     case Sound.DragonDie:
+      // The roar must be cut before playing the death sound, which
+      // mirrors the original hardware where the dragon's roar stops
+      // the moment it dies.
       soundRoar.pause();
       soundRoar.currentTime = 0;
       soundDragonDie.currentTime = 0;
@@ -110,10 +116,21 @@ export function paintPixel(
   width = width || 1;
   height = height || 1;
   ctx.fillStyle = `rgba(${r},${g},${b},1)`;
+
+  // Subtracting OVERSCAN is necessary here so that the game
+  // y-coordinates map into the visible screen area after the
+  // y-flip transform. The canvas height includes the overscan
+  // regions, so without this shift game objects would be drawn
+  // into the border.
   ctx.fillRect(x, y - OVERSCAN, width, height);
 }
 
 export function roomColor(color: COLOR): void {
+  // roomColor may be called every frame even when the room hasn't
+  // changed. The callback is skipped when the color is identical
+  // to avoid unncessary updates. Field comparison is required
+  // becuase the color argument may be a freshly constructed object
+  // each call, so reference equality would always fail.
   if (color.r !== lastColor.r || color.g !== lastColor.g || color.b !== lastColor.b) {
     lastColor = color;
     colorChangeCallback(color);
