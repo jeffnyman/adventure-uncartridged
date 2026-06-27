@@ -36,7 +36,7 @@ import { game1Objects, game2Objects, objectBall, objectDefs, objectSurround } fr
 import { joystick } from "./data/action";
 import { batMatrix } from "./data/bats";
 import { magnetMatrix } from "./data/magnets";
-import { greenDragonMatrix } from "./data/dragons";
+import { dragonDiff, greenDragonMatrix } from "./data/dragons";
 
 let switchReset: boolean;
 let switchSelect: boolean;
@@ -303,6 +303,7 @@ function dragonHandleRoar(dragon: OBJECT, timer: number): number {
     ) {
       dragon.linkedObject = ObjectId.Ball;
       dragon.state = 2;
+      playSound(Sound.Eaten);
     } else {
       dragon.state = 0;
     }
@@ -330,10 +331,15 @@ function dragonHandleAlive(dragon: OBJECT, matrix: number[], speed: number, time
     // If the ball hits the dragon, the roar state is transitioned to.
     dragon.state = 3;
 
+    const { left } = readDifficultySwitches();
+    timer = 0xfc - dragonDiff[gameLevel * 2 + (left === Difficulty.A ? 1 : 0)];
+
     dragon.x = objectBall.x / 2;
     dragon.y = objectBall.y / 2;
     dragon.movementX = 0;
     dragon.movementY = 0;
+
+    playSound(Sound.Roar);
   }
 
   if (collisionCheckObjectWithObject(dragon, objectDefs[ObjectId.Sword])) {
@@ -342,6 +348,8 @@ function dragonHandleAlive(dragon: OBJECT, matrix: number[], speed: number, time
 
     dragon.movementX = 0;
     dragon.movementY = 0;
+
+    playSound(Sound.DragonDie);
   }
 
   if (dragon.state === 0) {
