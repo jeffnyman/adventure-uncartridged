@@ -40,7 +40,7 @@
     "fallow": "^2.102.0",
     "fast-check": "^4.8.0",
     "release-it": "^20.2.0",
-    "stylelint": "^17.13.0",
+    "stylelint": "^17.14.1",
     "stylelint-config-standard": "^40.0.0",
     "stylelint-use-nesting": "^6.0.2",
     "typescript": "~6.0.2",
