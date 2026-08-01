@@ -43,7 +43,7 @@
     "stylelint": "^17.13.0",
     "stylelint-config-standard": "^40.0.0",
     "stylelint-use-nesting": "^6.0.2",
-    "typescript": "~6.0.2",
+    "typescript": "~7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"
   },
