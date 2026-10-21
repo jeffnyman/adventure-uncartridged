@@ -578,7 +578,7 @@ export const roomBoundsData = [
   ObjectId.Bat,          0x01, 0x1D,
   ObjectId.Magnet,       0x01, 0x1D,
   ObjectId.None,         0,    0
-]
+];
 
 // Destination rooms for level-dependent exits, organized in groups
 // of 3 (one per game level: 0, 1, 2). A room connection with bit 7
