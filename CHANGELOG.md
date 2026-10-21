@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0](https://github.com/jeffnyman/adventure-uncartridged/compare/1.0.0...1.1.0) (2026-10-21)
+
+### Features
+
+- add agent tester ([83eebcc](https://github.com/jeffnyman/adventure-uncartridged/commit/83eebcc19d3e7ff8a5fd520adf9ec21b2b52b96b))
+
+### Bug Fixes
+
+- game 3 object randomization never picked a valid room ([be6994d](https://github.com/jeffnyman/adventure-uncartridged/commit/be6994d92fdd760c4f5707035a5fd5bf43edaa03))
+
 ## [1.0.0](https://github.com/jeffnyman/adventure-uncartridged/compare/0.2.0...1.0.0) (2026-06-27)
 
 ### Features
