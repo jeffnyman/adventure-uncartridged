@@ -1411,20 +1411,26 @@ function setupRoomObjects(): void {
     let upper = boundsData[i++];
 
     do {
-      // Pick a room between upper and lower bounds (inclusive).
-      while (true) {
-        let room = Math.floor(random()) * 0x1f;
-
-        if (room >= lower && room <= upper) {
-          objectDefs[object].room = room;
-          break;
-        }
-      }
+      objectDefs[object].room = pickRandomRoom(lower, upper);
 
       object = boundsData[i++];
       lower = boundsData[i++];
       upper = boundsData[i++];
     } while (object > ObjectId.None);
+  }
+}
+
+// Picks a random room between lower and upper (inclusive) for the
+// level 3 object shuffle. Mirrors RandomizeLevel3 in the original
+// ROM, which trims a pseudo-random byte to a room value (and #$1f,
+// giving 0-31) and retries until it falls within the bounds.
+export function pickRandomRoom(lower: number, upper: number, rng: () => number = random): number {
+  while (true) {
+    const room = Math.floor(rng() * 0x20);
+
+    if (room >= lower && room <= upper) {
+      return room;
+    }
   }
 }
 
