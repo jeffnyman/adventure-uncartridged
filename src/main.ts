@@ -1,6 +1,6 @@
 import "./style.css";
 import { audit } from "./utils/logger";
-import { run, toggleDifficultyLeft, toggleDifficultyRight } from "./hardware";
+import { run, startPlayback, toggleDifficultyLeft, toggleDifficultyRight } from "./hardware";
 import { startGame } from "./adventure";
 import type { COLOR } from "./data/colors";
 
@@ -87,3 +87,31 @@ function onRoomColorChange(color: COLOR): void {
 }
 
 run(startGame, onRoomColorChange);
+
+// Optional playback of a recorded game: ?replay=<url of a JSON file>
+// holding { difficulty: { left, right }, frames }. The page sets
+// data-playback="done" on the body when the recording ends.
+interface Recording {
+  difficulty: { left: "A" | "B"; right: "A" | "B" };
+  frames: number[];
+}
+
+const replayUrl = new URLSearchParams(window.location.search).get("replay");
+
+if (replayUrl && body) {
+  void fetch(replayUrl)
+    .then((response) => response.json() as Promise<Recording>)
+    .then((recording) => {
+      const { left, right } = recording.difficulty;
+
+      if (btnLeftDiff) btnLeftDiff.textContent = `Left: ${left}`;
+      if (btnRightDiff) btnRightDiff.textContent = `Right: ${right}`;
+      btnLeftDiff?.classList.toggle("difficulty-active", left === "A");
+      btnRightDiff?.classList.toggle("difficulty-active", right === "A");
+
+      body.dataset.playback = "playing";
+      startPlayback(recording.frames, left, right, () => {
+        body.dataset.playback = "done";
+      });
+    });
+}

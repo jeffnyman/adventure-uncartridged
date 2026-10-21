@@ -34,6 +34,16 @@ let colorChangeCallback: (color: COLOR) => void;
 let difficultyLeft: Difficulty = Difficulty.B;
 let difficultyRight: Difficulty = Difficulty.B;
 
+// Playback of a recorded input file. Each entry holds one frame's
+// input as bits: up 1, down 2, left 4, right 8, fire 16, reset 32,
+// select 64. Inputs are applied per game frame rather than per
+// unit of time, so a playback always reproduces the recorded game
+// exactly, whatever the display's refresh rate.
+let playbackFrames: number[] | null = null;
+let playbackIndex = 0;
+let playbackResync = false;
+let playbackDone: (() => void) | null = null;
+
 export function run(tick: () => void, onColorChange: (color: COLOR) => void): void {
   colorChangeCallback = onColorChange;
 
@@ -63,8 +73,14 @@ export function run(tick: () => void, onColorChange: (color: COLOR) => void): vo
   let lastTimestamp = 0;
 
   function gameLoop(timestamp: number): void {
+    if (playbackResync) {
+      lastTimestamp = timestamp;
+      playbackResync = false;
+    }
+
     if (timestamp - lastTimestamp >= frameInterval) {
       lastTimestamp += frameInterval;
+      applyPlaybackFrame();
       tick();
     }
 
@@ -173,7 +189,44 @@ export function random(): number {
   return Math.random();
 }
 
+export function startPlayback(
+  frames: number[],
+  left: "A" | "B",
+  right: "A" | "B",
+  onDone: () => void,
+): void {
+  difficultyLeft = left === "A" ? Difficulty.A : Difficulty.B;
+  difficultyRight = right === "A" ? Difficulty.A : Difficulty.B;
+  playbackFrames = frames;
+  playbackIndex = 0;
+  playbackResync = true;
+  playbackDone = onDone;
+}
+
+function applyPlaybackFrame(): void {
+  if (!playbackFrames) return;
+
+  if (playbackIndex >= playbackFrames.length) {
+    playbackFrames = null;
+    keyUp = keyDown = keyLeft = keyRight = keyFire = keyReset = keySelect = false;
+    playbackDone?.();
+    return;
+  }
+
+  const bits = playbackFrames[playbackIndex++];
+  keyUp = (bits & 1) !== 0;
+  keyDown = (bits & 2) !== 0;
+  keyLeft = (bits & 4) !== 0;
+  keyRight = (bits & 8) !== 0;
+  keyFire = (bits & 16) !== 0;
+  keyReset = (bits & 32) !== 0;
+  keySelect = (bits & 64) !== 0;
+}
+
 function applyKeyState(key: string, pressed: boolean): void {
+  // The keyboard is ignored while a recording plays back.
+  if (playbackFrames) return;
+
   switch (key) {
     case "1":
       keyReset = pressed;
